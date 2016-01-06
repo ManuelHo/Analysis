@@ -168,9 +168,7 @@ declare function analysis:getStateLog($mba as element()
 };
 
 declare function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element()
-  ) as xs:duration {
-  let $bla := <bla></bla>
-  return 
+  ) as xs:duration { 
     if($stateLogEntry/@until) then
       xs:dateTime($stateLogEntry/@until) -
       xs:dateTime($stateLogEntry/@from)

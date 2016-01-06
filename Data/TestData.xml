@@ -60,7 +60,7 @@
 				</sc:initial>
 				<sc:state id="ChooseProducts">
 				  <sc:transition event="collectInformation"/>
-				  <sc:transition event="startDeveloping" target="CheckFeasibility"/>
+				  <sc:transition event="startDevelopment" target="CheckFeasibility"/>
 				</sc:state>
 				<sc:state id="DevelopProducts">
 					<sc:state id="CheckFeasibility">
@@ -111,8 +111,8 @@
 									<xes:event>
 										<xes:date key="time:timestamp" value="2016-01-01T07:40:00.000+02:00"/>
 										<xes:string key="sc:state" value="ChooseProducts"/>
-										<xes:string key="concept:name" value="startDeveloping"/>
-										<xes:string key="sc:event" value="startDeveloping"/>
+										<xes:string key="concept:name" value="startDevelopment"/>
+										<xes:string key="sc:event" value="startDevelopment"/>
 										<xes:string key="sc:target" value="CheckFeasibility"/>
 									</xes:event>
 									<xes:event>
@@ -138,7 +138,7 @@
 					</sc:initial>
 					<sc:state id="ChooseProducts">
 					  <sc:transition event="collectInformation"/>
-					  <sc:transition event="startDeveloping" target="CheckFeasibility"/>
+					  <sc:transition event="startDevelopment" target="CheckFeasibility"/>
 					</sc:state>
 					<sc:state id="DevelopProducts">
 						<sc:state id="CheckFeasibility">
@@ -189,8 +189,8 @@
 									<xes:event>
 										<xes:date key="time:timestamp" value="2016-01-01T07:50:00.000+02:00"/>
 										<xes:string key="sc:state" value="ChooseProducts"/>
-										<xes:string key="concept:name" value="startDeveloping"/>
-										<xes:string key="sc:event" value="startDeveloping"/>
+										<xes:string key="concept:name" value="startDevelopment"/>
+										<xes:string key="sc:event" value="startDevelopment"/>
 										<xes:string key="sc:target" value="CheckFeasibility"/>
 									</xes:event>
 									<xes:event>
@@ -216,7 +216,7 @@
 					</sc:initial>
 					<sc:state id="ChooseProducts">
 					  <sc:transition event="collectInformation"/>
-					  <sc:transition event="startDeveloping" target="CheckFeasibility"/>
+					  <sc:transition event="startDevelopment" target="CheckFeasibility"/>
 					</sc:state>
 					<sc:state id="DevelopProducts">
 						<sc:state id="CheckFeasibility">

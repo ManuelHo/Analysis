@@ -13,9 +13,9 @@ let $mbaTactHouse := $testData//mba:mba[@name="MyHouseholdInsuranceCompany"]
 
 (:return analysis:averageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts"):) (:15M:)
 
-(:return analysis:getStateLog($mba):)
+return analysis:getStateLog($mba)
 
-return analysis:getCycleTimeOfInstance($mbaTactCar, "End1") (:40M:)
+(:return analysis:getCycleTimeOfInstance($mbaTactCar, "End1"):) (:40M:)
 
 (:return analysis:getTotalActualCycleTime($mba, "tacticalInsurance", "End1"):)(:1H5M:)
 

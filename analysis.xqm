@@ -175,3 +175,21 @@ declare function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element(
     else fn:current-dateTime() -
       xs:dateTime($stateLogEntry/@from)
 };
+
+declare function analysis:getActualAverageWIP ($mba as element(),
+  $level as xs:string,
+  $function as function(element()) as xs:boolean
+) as xs:decimal {
+  (: average number of instances of a process that are active at a given point in time :)
+  (: e.g. every day from 14:00 until 15:00 :)
+  <TBD></TBD>
+};
+
+declare function analysis:getActualAverageLambda ($mba as element(),
+  $level as xs:string,
+  $function as function(element()) as xs:boolean
+) as xs:decimal {
+  (: average number of new instances of a process that are created by time unit :)
+  (: e.g. every day from 14:00 until 15:00 :)
+  <TBD></TBD>
+};

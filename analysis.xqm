@@ -167,6 +167,8 @@ declare function analysis:getStateLog($mba as element()
  return <stateLog>{map:get($stateLog, 'stateLog')}</stateLog>
 };
 
+(: Private :)
+
 declare function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element()
   ) as xs:duration { 
     if($stateLogEntry/@until) then
@@ -192,4 +194,9 @@ declare function analysis:getActualAverageLambda ($mba as element(),
   (: average number of new instances of a process that are created by time unit :)
   (: e.g. every day from 14:00 until 15:00 :)
   <TBD></TBD>
+};
+
+declare function analysis:getCreationTime ($mba as element()
+  ) as xs:dateTime {
+    <TBD></TBD>    
 };

@@ -9,7 +9,7 @@ import module namespace functx = 'http://www.functx.com';
 (: returns total average cycle time of MBA at a certain level :)
 declare function analysis:getTotalActualCycleTime($mba as element(),
   $level as xs:string,
-  $toState as xs:string
+  $toState as xs:string?
   ) as xs:duration {
   let $descendants := mba:getDescendantsAtLevel($mba, $level)
   
@@ -22,7 +22,8 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
 
 (: returns cycle time of top level from MBA :)
 (: by adding up cycle times of each states until $toState :)
-declare function analysis:getCycleTimeOfInstance($mba as element(),
+(: WRONG FOR COMPOSITE STATES, HAS TO BE DELETED :)
+declare function analysis:getCycleTimeOfInstanceBySum($mba as element(),
   $toState as xs:string?
   ) as xs:duration {  
   (: take states from stateLog until $toState, which is not included :)
@@ -42,7 +43,7 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
 
 (: returns cycle time of top level from MBA :)
 (: as time between start and end :)
-declare function analysis:getCycleTimeOfInstance2($mba as element(),
+declare function analysis:getCycleTimeOfInstance($mba as element(),
   $toState as xs:string?
   ) as xs:duration {
  let $stateLog :=

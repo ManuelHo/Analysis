@@ -2,9 +2,9 @@ module namespace analysis = 'http://www.dke.jku.at/MBA/Analysis';
 
 declare namespace xes='http://www.xes-standard.org/';
 
-import module namespace mba  = 'http://www.dke.jku.at/MBA';
-import module namespace sc = 'http://www.w3.org/2005/07/scxml';
-import module namespace functx = 'http://www.functx.com';
+import module namespace mba  = 'http://www.dke.jku.at/MBA' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/mba.xqm';
+import module namespace sc = 'http://www.w3.org/2005/07/scxml' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/scxml.xqm';
+import module namespace functx = 'http://www.functx.com' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/functx.xqm';
 
 (: returns total average cycle time of MBA at a certain level :)
 declare function analysis:getTotalActualCycleTime($mba as element(),

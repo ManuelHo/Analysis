@@ -20,10 +20,40 @@ let $mbaOptCarClerk := $testData//mba:mba[@name="MyCarInsuranceClerk"]
 
 (:return analysis:averageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts"):) (:15M:)
 
-return analysis:getStateLog($mbaOptCarClerk)
+(:return analysis:getStateLog($mbaOptCarClerk):)
 
 (:return analysis:getCycleTimeOfInstance($mbaTactCar, ():) (:40M:)
 
 (:return analysis:getTotalActualCycleTime($mba, "tacticalInsurance", "End1"):)(:1H5M:)
 
 (:return analysis:getTotalCycleTimeInStates($mbaTactCar, "tacticalInsurance", ("ChooseProducts", "CheckFeasibility")):) (:15M:)
+
+(:return analysis:getCreationTime($mba):)
+
+(: checks if the creation time of a mba is between 5:30 and 8:00 :)
+let $timeFunc := function($mba as element()
+) as xs:boolean {
+    let $from := functx:time(5,30,0)
+    let $until := functx:time(8,0,0)
+
+    let $creationTime := functx:time(
+            fn:hours-from-dateTime(analysis:getCreationTime($mba)),
+            fn:minutes-from-dateTime(analysis:getCreationTime($mba)),
+            fn:seconds-from-dateTime(analysis:getCreationTime($mba))
+    )
+
+    return
+        if ($creationTime > $from and
+            $creationTime < $until) then
+                fn:true()
+        else
+            fn:false()
+}
+
+(:return analysis:getActualAverageLambda($mba, 'operationalInsurance', $timeFunc):)
+
+(: return mba:getAncestors($mbaOptCarClerk):) (: Cannot promote node()* to element(). :)
+(: return mba:getAncestors($mbaTactCar) :) (: works fine! but why? :)
+
+
+return $timeFunc($mba)

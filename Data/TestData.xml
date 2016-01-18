@@ -338,7 +338,7 @@
 						<sc:data id="_x">
 							<db xmlns="">myMBAse</db>
 							<collection xmlns="">MyInsuranceCompany</collection>
-							<mba xmlns="">MyHouseholdInsuranceCompanyInsuranceCompany</mba>
+							<mba xmlns="">MyHouseholdInsuranceCompany</mba>
 							<currentStatus xmlns="">
 								<state ref="End1"/>
 							</currentStatus>
@@ -375,6 +375,114 @@
 										<xes:string key="sc:state" value="ImplementProduct"/>
 										<xes:string key="concept:name" value="finishedCoding"/>
 										<xes:string key="sc:event" value="finishedCoding"/>
+										<xes:string key="sc:target" value="End1"/>
+									</xes:event>
+								</xes:trace>
+							</xes:log>
+						</sc:data>
+					</sc:datamodel>
+					<sc:initial>
+					  <sc:transition target="ChooseProducts"/>
+					</sc:initial>
+					<sc:state id="ChooseProducts">
+					  <sc:transition event="collectInformation"/>
+					  <sc:transition event="startDevelopment" target="CheckFeasibility"/>
+					</sc:state>
+					<sc:state id="DevelopProducts">
+						<sc:state id="CheckFeasibility">
+							<sc:transition event="startCoding" target="ImplementProduct"/>
+							<sc:transition event="abortDevelopment" target="End1"/>
+						</sc:state>
+						<sc:state id="ImplementProduct">
+							<sc:transition event="finishedCoding" target="End1"/>
+						</sc:state>
+					</sc:state>
+					<sc:state id="End1">
+					</sc:state>
+				</sc:scxml>
+			</elements>
+			<childLevel name="operationalInsurance">
+				<elements>
+					<sc:scxml name="OperationalInsurance">
+						<sc:datamodel>
+						  <sc:data id="_event"/>
+						  <sc:data id="_x">
+						  </sc:data>
+						</sc:datamodel>
+						<sc:initial>
+						  <sc:transition target="CollectData"/>
+						</sc:initial>
+						<sc:state id="CollectData">
+						  <sc:transition event="getCustomerData"/>
+						  <sc:transition event="getTotalCosts"/>
+						  <sc:transition event="finishedCollecting" target="Store"/>
+						</sc:state>
+						<sc:parallel id="Store">
+							<sc:state id="ArchiveComp">
+								<sc:state id="Archive">
+									<sc:transition event="archived" target="Archive_f"/>
+								</sc:state>
+								<sc:state id="Archive_f"/>
+							</sc:state>
+							<sc:state id="PrintComp">
+								<sc:state id="Print">
+									<sc:transition event="printed" target="Print_f"/>
+								</sc:state>
+								<sc:state id="Print_f"/>
+							</sc:state>
+							<sc:transition target="Pay" cond="$isInState('Archive_f') and $isInState('Print_f')"/>
+						</sc:parallel>
+						<sc:state id="Pay">
+							<sc:transition event="finishedPayment" target="End2"/>
+						</sc:state>
+						<sc:state id="End2">
+						</sc:state>
+					  </sc:scxml>
+				</elements>
+			</childLevel>
+		</topLevel>
+		<concretizations>
+		</concretizations>
+	</mba>
+		<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" name="MyHouseholdInsuranceCompanyAborted" hierarchy="simple">
+		<topLevel name="tacticalInsurance">
+			<elements>
+				<sc:scxml name="TacticalInsurance">
+					<sc:datamodel>
+						<sc:data id="_event"/>
+						<sc:data id="_x">
+							<db xmlns="">myMBAse</db>
+							<collection xmlns="">MyInsuranceCompany</collection>
+							<mba xmlns="">MyHouseholdInsuranceCompanyAborted</mba>
+							<currentStatus xmlns="">
+								<state ref="End1"/>
+							</currentStatus>
+							<externalEventQueue xmlns=""/>
+							<xes:log xmlns:xes="http://www.xes-standard.org/">
+								<xes:trace>
+									<xes:event>
+										<xes:date key="time:timestamp" value="2016-01-01T07:30:00.000+02:00"/>
+										<xes:string key="sc:initial" value="TacticalInsurance"/>
+										<xes:string key="sc:target" value="ChooseProducts"/>
+									</xes:event>
+									<xes:event>
+										<xes:date key="time:timestamp" value="2016-01-01T07:37:00.000+02:00"/>
+										<xes:string key="sc:state" value="ChooseProducts"/>
+										<xes:string key="concept:name" value="collectInformation"/>
+										<xes:string key="sc:event" value="collectInformation"/>
+									</xes:event>
+									<xes:event>
+										<xes:date key="time:timestamp" value="2016-01-01T07:50:00.000+02:00"/>
+										<xes:string key="sc:state" value="ChooseProducts"/>
+										<xes:string key="concept:name" value="startDevelopment"/>
+										<xes:string key="sc:event" value="startDevelopment"/>
+										<xes:string key="sc:target" value="CheckFeasibility"/>
+									</xes:event>
+									<xes:event>
+										<xes:date key="time:timestamp" value="2016-01-01T07:55:00.000+02:00"/>
+										<xes:string key="sc:state" value="CheckFeasibility"/>
+										<xes:string key="concept:name" value="abortDevelopment"/>
+										<xes:string key="sc:event" value="abortDevelopment"/>
 										<xes:string key="sc:target" value="End1"/>
 									</xes:event>
 								</xes:trace>

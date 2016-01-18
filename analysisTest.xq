@@ -55,5 +55,19 @@ let $timeFunc := function($mba as element()
 (: return mba:getAncestors($mbaOptCarClerk):) (: Cannot promote node()* to element(). :)
 (: return mba:getAncestors($mbaTactCar) :) (: works fine! but why? :)
 
+return analysis:getTransitionProbability($mba,
+        'tacticalInsurance',
+        'CheckFeasibility',
+        'End1',
+        ()
+)
 
-return $timeFunc($mba)
+(: When $eventState is 'ImplementProduct', it works. But 'DevelopProducts' fails --> only on output!
+   Exception in thread "main" javax.xml.xquery.XQException:
+   XQJFOS021 - FORWARD_ONLY_SEQUENCE: Cursor is not positioned on an XQItem.
+   :)
+
+(:let $entrySet := sc:computeEntrySet($transition)
+let $config := sc:getSourceState($transition)/ancestor-or-self::sc:state
+let $exitSet := sc:computeExitSet($config, $transition)
+:)

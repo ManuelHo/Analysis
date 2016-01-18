@@ -173,11 +173,55 @@ declare function analysis:getStateLog($mba as element()
 
 declare function analysis:getTransitionProbability($mba as element(),
         $level as xs:string,
-        $source as xs:string?,
+        $source as xs:string?, (: $source should not be optional.. :)
         $target as xs:string,
         $event as xs:string?
-) as xs:decimal {
-    <TBD></TBD>
+) (:as xs:decimal:) {
+    let $descendants := mba:getDescendantsAtLevel($mba, $level)
+
+    let $transitions := for $descendant in $descendants
+        let $scxml := mba:getSCXML($descendant)
+        let $log := $scxml/sc:datamodel/sc:data[@id = "_x"]/xes:log
+        let $events := $log//xes:event
+
+        (: iterate over all events from event log :)
+        (: for each event, find corresponding transition :)
+        let $c := for $event in $events
+            let $eventState := fn:string($event/xes:string[@key = 'sc:state']/@value)
+            let $eventInitial := fn:string($event/xes:string[@key = 'sc:initial']/@value)
+            let $eventEvent := fn:string($event/xes:string[@key = 'sc:event']/@value)
+            let $eventTarget := fn:string($event/xes:string[@key = 'sc:target']/@value)
+            let $eventCond := fn:string($event/xes:string[@key = 'sc:cond']/@value)
+                    (: two counters, count if :)
+                        (: $source is in ExitSet ( let $config := sc:getSourceState($transition)/ancestor-or-self::sc:state) ) :)
+                        (: $target is in EntrySet :)
+            let $transition := (: ToDo: export to function :)
+                $scxml//sc:transition[
+                (not($eventEvent or @event) or @event = $eventEvent) and
+                        (not($eventTarget or @target) or @target = $eventTarget) and
+                        (not($eventCond or @cond) or @cond = $eventCond) and
+                        (not($eventState) or ../@id = $eventState) and
+                        (not($eventInitial) or (../../@id = $eventInitial or ../../@name = $eventInitial))
+                ]
+            let $entrySet := sc:computeEntrySet($transition)
+            let $configuration := sc:getSourceState($transition)/ancestor-or-self::sc:state |
+                    sc:getSourceState($transition)/ancestor-or-self::sc:parallel
+            let $exitSet := sc:computeExitSet($configuration, $transition)
+            return
+                if (fn:exists($exitSet[@id=$source])) then
+                    <log>
+                        <exit id='{$exitSet[@id=$source]/@id}' event='{$eventEvent}'/>
+                        <enter id='{$entrySet[@id=$target]/@id}' event='{$eventEvent}'/>
+                    </log>
+                else ()
+        return $c
+
+    return
+        <result event='{$event}' source='{$source}' target='{$target}'>
+            <left-source>{fn:count($transitions//exit[@id=$source])}</left-source>
+            <entered-target>{fn:count($transitions//enter[@id=$target])}</entered-target>
+            <probability>{fn:count($transitions//enter[@id=$target]) div fn:count($transitions//exit[@id=$source])}</probability>
+        </result>
 };
 
 (: Helper :)
@@ -216,3 +260,18 @@ declare function analysis:getCreationTime($mba as element()
 ) as xs:dateTime {
     xs:dateTime(analysis:getStateLog($mba)/state/@from[1])
 };
+
+
+(: from probability
+
+    (: find transition which fits to params; from state chart :)
+    let $transition :=
+        $scxml//sc:transition[
+        (not($target or @target) or sc:computeEntrySet(.)/@id = $target) and
+                (not($source) or ../ancestor-or-self::sc:state/@id = $source
+                        or ../ancestor-or-self::sc:parallel/@id = $source) and
+                (not($event or @event) or @event = $event) and
+                (not($eventCond or @cond) or @cond = $eventCond) and
+                (not($eventInitial) or (../../@id = $eventInitial or ../../@name = $eventInitial))
+        ]
+:)

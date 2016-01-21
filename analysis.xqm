@@ -31,8 +31,11 @@ declare function analysis:getTotalCycleTime($mba as element(),
 
     let $descendants := mba:getDescendantsAtLevel($mba, $level)
 
-    let $stateLog := analysis:getStateLogToState($mba, $toState)
+    let $sum := for $descendant in $descendants
+        let $stateLog := analysis:getStateLogToState($descendant, $toState)/state
+        return for $state in mba:getSCXML($descendant)
 
+        return 1
     return 1
 };
 
@@ -41,16 +44,22 @@ declare function analysis:getTotalCycleTime($mba as element(),
 (: WRONG FOR COMPOSITE STATES, HAS TO BE DELETED :)
 declare function analysis:getCycleTimeOfInstanceBySum($mba as element(),
         $toState as xs:string?
-) as xs:duration {
+) (:as xs:duration:) {
 (: take states from stateLog until $toState, which is not included :)
-    let $stateLog := analysis:getStateLogToState($mba, $toState)
+    let $stateLog := analysis:getStateLogToState($mba, $toState)/state
+    (:let $stateLog :=
+        if ($toState) then
+            analysis:getStateLog($mba)/state[@ref = $toState]/preceding-sibling::state
+        else
+            analysis:getStateLog($mba)/state:)
 
-    let $cycleTimeOfInstance := fn:sum(
+    (:let $cycleTimeOfInstance := fn:sum(
             (for $entry in $stateLog return
                 analysis:getCycleTimeOfStateLogEntry($entry)), ()
-    )
+    ):)
 
-    return $cycleTimeOfInstance
+    (:return $cycleTimeOfInstance:)
+    return $stateLog
 };
 
 (: returns cycle time of top level from MBA :)
@@ -58,7 +67,7 @@ declare function analysis:getCycleTimeOfInstanceBySum($mba as element(),
 declare function analysis:getCycleTimeOfInstance($mba as element(),
         $toState as xs:string?
 ) as xs:duration {
-    let $stateLog := analysis:getStateLogToState($mba, $toState)
+    let $stateLog := analysis:getStateLogToState($mba, $toState)/state
 
     let $cycleTimeOfInstance :=
         (if ($stateLog[last()]/@until) then
@@ -202,7 +211,7 @@ declare function analysis:getTransitionProbability($mba as element(),
 
 (: Helper :)
 
-declare %private function analysis:getTransitionsForLogEntry($scxml as element(),
+declare function analysis:getTransitionsForLogEntry($scxml as element(),
         $event as element()
 ) as element() {
     (: get properties of current event :)
@@ -224,7 +233,7 @@ declare %private function analysis:getTransitionsForLogEntry($scxml as element()
     return $transition
 };
 
-declare %private function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element()
+declare function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element()
 ) as xs:duration {
     if ($stateLogEntry/@until) then
         xs:dateTime($stateLogEntry/@until) -
@@ -233,13 +242,15 @@ declare %private function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as
             xs:dateTime($stateLogEntry/@from)
 };
 
-declare %private function analysis:getStateLogToState($mba as element(),
+declare function analysis:getStateLogToState($mba as element(),
     $toState as xs:string?
 ) as element(){
-    if ($toState) then
-        analysis:getStateLog($mba)/state[@ref = $toState]/preceding-sibling::state
-    else
-        analysis:getStateLog($mba)/state
+    let $stateLog := analysis:getStateLog($mba)
+    return
+        if ($toState) then
+            element{fn:node-name($stateLog)}{$stateLog/state[@ref = $toState]/preceding-sibling::state}
+        else
+            $stateLog
 };
 
 declare function analysis:getActualAverageWIP($mba as element(),

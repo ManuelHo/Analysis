@@ -123,25 +123,10 @@ declare function analysis:getStateLog($mba as element()
                 let $configuration := map:get($result, 'configuration')
                 let $stateLog := map:get($result, 'stateLog')
 
-                (: get properties of current event :)
-                let $eventState := fn:string($event/xes:string[@key = 'sc:state']/@value)
-                let $eventInitial := fn:string($event/xes:string[@key = 'sc:initial']/@value)
-                let $eventEvent := fn:string($event/xes:string[@key = 'sc:event']/@value)
-                let $eventTarget := fn:string($event/xes:string[@key = 'sc:target']/@value)
-                let $eventCond := fn:string($event/xes:string[@key = 'sc:cond']/@value)
-
                 let $eventTimestamp :=
                     xs:dateTime($event/xes:date[@key = 'time:timestamp']/@value)
 
-                (: get all transitions from scxml which comply to the current event :)
-                let $transition :=
-                    $scxml//sc:transition[
-                    (not($eventEvent or @event) or @event = $eventEvent) and (: not:(...) -> true if neither $eventEvent nor @event exist. If both are non existing, the second condition does not need to be checked :)
-                    (not($eventTarget or @target) or @target = $eventTarget) and
-                            (not($eventCond or @cond) or @cond = $eventCond) and
-                            (not($eventState) or ../@id = $eventState) and
-                            (not($eventInitial) or (../../@id = $eventInitial or ../../@name = $eventInitial))
-                    ]
+                let $transition := analysis:getTransitionsForLogEntry($scxml, $event)
 
                 let $entrySet := sc:computeEntrySet($transition) (: gets state(s) that are entered :)
                 let $exitSet := sc:computeExitSet($configuration, $transition) (: nodes that are exited :)
@@ -187,44 +172,50 @@ declare function analysis:getTransitionProbability($mba as element(),
         (: iterate over all events from event log :)
         (: for each event, find corresponding transition :)
         let $c := for $event in $events
-            let $eventState := fn:string($event/xes:string[@key = 'sc:state']/@value)
-            let $eventInitial := fn:string($event/xes:string[@key = 'sc:initial']/@value)
-            let $eventEvent := fn:string($event/xes:string[@key = 'sc:event']/@value)
-            let $eventTarget := fn:string($event/xes:string[@key = 'sc:target']/@value)
-            let $eventCond := fn:string($event/xes:string[@key = 'sc:cond']/@value)
-                    (: two counters, count if :)
-                        (: $source is in ExitSet ( let $config := sc:getSourceState($transition)/ancestor-or-self::sc:state) ) :)
-                        (: $target is in EntrySet :)
-            let $transition := (: ToDo: export to function :)
-                $scxml//sc:transition[
-                (not($eventEvent or @event) or @event = $eventEvent) and
-                        (not($eventTarget or @target) or @target = $eventTarget) and
-                        (not($eventCond or @cond) or @cond = $eventCond) and
-                        (not($eventState) or ../@id = $eventState) and
-                        (not($eventInitial) or (../../@id = $eventInitial or ../../@name = $eventInitial))
-                ]
+            let $transition := analysis:getTransitionsForLogEntry($scxml, $event)
+
             let $entrySet := sc:computeEntrySet($transition)
             let $configuration := sc:getSourceState($transition)/ancestor-or-self::sc:state |
                     sc:getSourceState($transition)/ancestor-or-self::sc:parallel
             let $exitSet := sc:computeExitSet($configuration, $transition)
+
             return
                 if (fn:exists($exitSet[@id=$source])) then
-                    <log>
-                        <exit id='{$exitSet[@id=$source]/@id}' event='{$eventEvent}'/>
-                        <enter id='{$entrySet[@id=$target]/@id}' event='{$eventEvent}'/>
-                    </log>
+                    <log exit='{$exitSet[@id=$source]/@id}' enter='{$entrySet[@id=$target]/@id}'/>
                 else ()
         return $c
 
     return
         <result event='{$event}' source='{$source}' target='{$target}'>
-            <left-source>{fn:count($transitions//exit[@id=$source])}</left-source>
-            <entered-target>{fn:count($transitions//enter[@id=$target])}</entered-target>
-            <probability>{fn:count($transitions//enter[@id=$target]) div fn:count($transitions//exit[@id=$source])}</probability>
+            <left-source>{fn:count($transitions[@exit=$source])}</left-source>
+            <entered-target>{fn:count($transitions[@enter=$target])}</entered-target>
+            <probability>{fn:count($transitions[@enter=$target]) div fn:count($transitions[@exit=$source])}</probability>
         </result>
 };
 
 (: Helper :)
+
+declare %private function analysis:getTransitionsForLogEntry($scxml as element(),
+        $event as element()
+) as element() {
+    (: get properties of current event :)
+    let $eventState := fn:string($event/xes:string[@key = 'sc:state']/@value)
+    let $eventInitial := fn:string($event/xes:string[@key = 'sc:initial']/@value)
+    let $eventEvent := fn:string($event/xes:string[@key = 'sc:event']/@value)
+    let $eventTarget := fn:string($event/xes:string[@key = 'sc:target']/@value)
+    let $eventCond := fn:string($event/xes:string[@key = 'sc:cond']/@value)
+
+    (: get all transitions from scxml which comply to the current event :)
+    let $transition :=
+        $scxml//sc:transition[
+        (not($eventEvent or @event) or @event = $eventEvent) and
+                (not($eventTarget or @target) or @target = $eventTarget) and
+                (not($eventCond or @cond) or @cond = $eventCond) and
+                (not($eventState) or ../@id = $eventState) and
+                (not($eventInitial) or (../../@id = $eventInitial or ../../@name = $eventInitial))
+        ]
+    return $transition
+};
 
 declare %private function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element()
 ) as xs:duration {

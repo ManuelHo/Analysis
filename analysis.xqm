@@ -20,6 +20,22 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
     return fn:avg($cycleTimes)
 };
 
+declare function analysis:getTotalCycleTime($mba as element(),
+    $level as xs:string,
+    $toState as xs:string?,
+    $newStates as element()*
+) (:as xs:duration:){
+    (: prinzipiell obersten 'level' bei states nehmen :)
+    (: außer ein substate davon ist in $newStates :)
+    (: dann: anstatt dem obersten 'level' die siblings vom geänderten substate nehmen :)
+
+    let $descendants := mba:getDescendantsAtLevel($mba, $level)
+
+    let $stateLog := analysis:getStateLogToState($mba, $toState)
+
+    return 1
+};
+
 (: returns cycle time of top level from MBA :)
 (: by adding up cycle times of each states until $toState :)
 (: WRONG FOR COMPOSITE STATES, HAS TO BE DELETED :)
@@ -27,11 +43,7 @@ declare function analysis:getCycleTimeOfInstanceBySum($mba as element(),
         $toState as xs:string?
 ) as xs:duration {
 (: take states from stateLog until $toState, which is not included :)
-    let $stateLog :=
-        if ($toState) then
-            analysis:getStateLog($mba)/state[@ref = $toState]/preceding-sibling::state
-        else
-            analysis:getStateLog($mba)/state
+    let $stateLog := analysis:getStateLogToState($mba, $toState)
 
     let $cycleTimeOfInstance := fn:sum(
             (for $entry in $stateLog return
@@ -46,11 +58,7 @@ declare function analysis:getCycleTimeOfInstanceBySum($mba as element(),
 declare function analysis:getCycleTimeOfInstance($mba as element(),
         $toState as xs:string?
 ) as xs:duration {
-    let $stateLog :=
-        if ($toState) then
-            analysis:getStateLog($mba)/state[@ref = $toState]/preceding-sibling::state
-        else
-            analysis:getStateLog($mba)/state
+    let $stateLog := analysis:getStateLogToState($mba, $toState)
 
     let $cycleTimeOfInstance :=
         (if ($stateLog[last()]/@until) then
@@ -93,6 +101,7 @@ declare function analysis:getTotalCycleTimeInStates($mba as element(),
 ) as xs:duration {
     let $stateLog := analysis:getStateLog($mba)
 
+    (: ToDo: include $level and check if $states are substates of each other :)
     return fn:sum(
             (
                 for $entry in $stateLog/state[functx:is-value-in-sequence(@ref, $states)] return
@@ -169,9 +178,8 @@ declare function analysis:getTransitionProbability($mba as element(),
         let $log := $scxml/sc:datamodel/sc:data[@id = "_x"]/xes:log
         let $events := $log//xes:event
 
-        (: iterate over all events from event log :)
-        (: for each event, find corresponding transition :)
-        let $c := for $event in $events
+        return
+            for $event in $events
             let $transition := analysis:getTransitionsForLogEntry($scxml, $event)
 
             let $entrySet := sc:computeEntrySet($transition)
@@ -183,7 +191,6 @@ declare function analysis:getTransitionProbability($mba as element(),
                 if (fn:exists($exitSet[@id=$source])) then
                     <log exit='{$exitSet[@id=$source]/@id}' enter='{$entrySet[@id=$target]/@id}'/>
                 else ()
-        return $c
 
     return
         <result event='{$event}' source='{$source}' target='{$target}'>
@@ -224,6 +231,15 @@ declare %private function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as
                 xs:dateTime($stateLogEntry/@from)
     else fn:current-dateTime() -
             xs:dateTime($stateLogEntry/@from)
+};
+
+declare %private function analysis:getStateLogToState($mba as element(),
+    $toState as xs:string?
+) as element(){
+    if ($toState) then
+        analysis:getStateLog($mba)/state[@ref = $toState]/preceding-sibling::state
+    else
+        analysis:getStateLog($mba)/state
 };
 
 declare function analysis:getActualAverageWIP($mba as element(),

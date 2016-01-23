@@ -23,20 +23,54 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
 declare function analysis:getTotalCycleTime($mba as element(),
     $level as xs:string,
     $toState as xs:string?,
-    $newStates as element()*
+    $changedStates as element()*
 ) (:as xs:duration:){
-    (: prinzipiell obersten 'level' bei states nehmen :)
-    (: außer ein substate davon ist in $newStates :)
-    (: dann: anstatt dem obersten 'level' die siblings vom geänderten substate nehmen :)
-
     let $descendants := mba:getDescendantsAtLevel($mba, $level)
 
     let $sum := for $descendant in $descendants
         let $stateLog := analysis:getStateLogToState($descendant, $toState)/state
-        return for $state in mba:getSCXML($descendant)
+        let $scxml := mba:getSCXML($descendant)
+        for $entry in $stateLog
+        return
+            if (functx:is-value-in-sequence($entry/@ref, $scxml/*[self::sc:state|self::sc:parallel|self::sc:initial]/@id)) then
+            (: 'first level' states :)
+                if (functx:is-value-in-sequence($entry/@ref, $changedStates/state/@id)) then
+                (: current state is changed, ToDo: return time for stateLogEntry * factor * transitionProbability :)
+                    element{'state'}{$entry/@ref, $changedStates/state[@id=$entry/@ref]/@factor}
+                else if ($scxml/*[@id=$entry/@ref]/(descendant::sc:state|descendant::sc:parallel|descendant::sc:initial)/@id = $changedStates/state/@id) then
+                (: id of at least one descendant of $entry/@ref in $changedStates/state/@id :)
+                    for $substate in $scxml/*[@id=$entry/@ref]/(sc:state|sc:parallel|sc:initial)
+                        return analysis:getTotalCycleTimeRecursive($descendant, $substate/@id, $toState, $changedStates)
+                else
+                    (: neither current nor descendant states are changed. ToDo: return time for stateLogEntry * transitionProbability:)
+                    element{'state'}{$entry/@ref, attribute factor {'1'}}
+            else
+                () (: no 'first level' state :)
+    return $sum
+};
 
-        return 1
-    return 1
+declare %private function analysis:getTotalCycleTimeRecursive($mba as element(),
+    $stateId as xs:string,
+    $toState as xs:string?,
+    $changedStates as element()
+) {
+    let $entry := analysis:getStateLogToState($mba, $toState)/state[@ref=$stateId] (: ToDo: how to get the correct stateLog entry?? :)
+    let $state := mba:getSCXML($mba)//(sc:state|sc:parallel|sc:initial)[@id=$stateId]
+
+    return
+        if ($entry) then
+            if (functx:is-value-in-sequence($stateId, $changedStates/state/@id)) then
+            (: current state is changed, ToDo: return time for stateLogEntry * factor * transitionProbability :)
+                element{'state'}{attribute ref {$stateId}, $changedStates/state[@id=$stateId]/@factor}
+            else if ($state/(descendant::sc:state|descendant::sc:parallel|descendant::sc:initial)/@id = $changedStates/state/@id) then
+            (: id of at least one descendant of $entry/@ref in $changedStates/state/@id :)
+                for $substate in $state/(sc:state|sc:parallel|sc:initial)
+                    return analysis:getTotalCycleTimeRecursive($mba, $substate/@id, $toState, $changedStates)
+            else
+            (: neither current nor descendant states are changed. ToDo: return time for stateLogEntry * transitionProbability :)
+                element{'state'}{attribute ref {$stateId}, attribute factor {'1'}}
+        else
+            () (: state not in $stateLog :)
 };
 
 (: returns cycle time of top level from MBA :)

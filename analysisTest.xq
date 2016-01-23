@@ -48,32 +48,15 @@ let $mbaOptCarClerk := $testData//mba:mba[@name="MyCarInsuranceClerk"]
 )
 :)
 
-let $f := function($mba as element(),
-    $level as xs:string,
-    $toState as xs:string?,
-    $newStates as element()*
-    ) (:as xs:duration:){
-        (: prinzipiell obersten 'level' bei states nehmen :)
-        (: außer ein substate davon ist in $newStates :)
-        (: dann: anstatt dem obersten 'level' die siblings vom geänderten substate nehmen :)
-
-        let $descendants := mba:getDescendantsAtLevel($mba, $level)
-
-        let $sum := for $descendant in $descendants
-            let $stateLog := analysis:getStateLogToState($descendant, $toState)
-            return for $state in mba:getSCXML($descendant)
-
-            return 1
-        return 1
-    }
-
 let $n :=
 <states>
-    <state ref='ChooseProducts' factor='2'/>
-    <state ref='ImplementProduct' factor='10'/>
+    <state id="CollectData" factor='3'/>
+    <state id='Archive' factor='7'/>
 </states>
 
-return $f($mba, 'tacticalInsurance', 'End1', $n)
+return analysis:getTotalCycleTime($mba, 'operationalInsurance', 'End2', $n)
+
+(:return <b>{mba:getSCXML($mbaTactCar)/(descendant-or-self::sc:state|descendant-or-self::sc:parallel|descendant-or-self::sc:initial)}</b>:)
 
 (: ################## Testcalls ################## :)
 

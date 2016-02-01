@@ -50,19 +50,15 @@ let $mbaOptCarClerk := $testData//mba:mba[@name="MyCarInsuranceClerk"]
 
 let $n :=
 <states>
-    <state id="CollectData" factor='3'/>
-    <state id='Archive' factor='7'/>
+    <state id="ImplementProduct" factor='3'/>
+    <state id='ChooseProducts' factor='7'/>
 </states>
 
-let $transition := $mbaTactCar//sc:transition[@event='startDevelopment']
-
-return analysis:getTransitionProbability($transition)
+let $transition := $mbaTactCar//sc:transition[@event='startCoding']
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
-(:return analysis:getTotalCycleTime($mba, 'operationalInsurance', 'End2', $n):)
-
-(:return <b>{mba:getSCXML($mbaTactCar)/(descendant-or-self::sc:state|descendant-or-self::sc:parallel|descendant-or-self::sc:initial)}</b>:)
+return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', 'End1', $n)
 
 (: ################## Testcalls ################## :)
 
@@ -79,3 +75,5 @@ return analysis:getTransitionProbability($transition)
 (:return analysis:getTotalCycleTimeInStates($mbaTactCar, "tacticalInsurance", ("ChooseProducts", "CheckFeasibility")):) (:15M:)
 
 (:return analysis:getCreationTime($mba):)
+
+(:return analysis:getTransitionProbability($transition):)

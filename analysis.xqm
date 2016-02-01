@@ -24,7 +24,7 @@ declare function analysis:getTotalCycleTime($mba as element(),
     $level as xs:string,
     $toState as xs:string?,
     $changedStates as element()*
-) (:as xs:duration:){
+) (:as xs:duration:){ (: no stateLog needed!, write function new :)
     let $descendants := mba:getDescendantsAtLevel($mba, $level)
 
     let $sum := for $descendant in $descendants
@@ -74,29 +74,6 @@ declare %private function analysis:getTotalCycleTimeRecursive($mba as element(),
 };
 
 (: returns cycle time of top level from MBA :)
-(: by adding up cycle times of each states until $toState :)
-(: WRONG FOR COMPOSITE STATES, HAS TO BE DELETED :)
-declare function analysis:getCycleTimeOfInstanceBySum($mba as element(),
-        $toState as xs:string?
-) (:as xs:duration:) {
-(: take states from stateLog until $toState, which is not included :)
-    let $stateLog := analysis:getStateLogToState($mba, $toState)/state
-    (:let $stateLog :=
-        if ($toState) then
-            analysis:getStateLog($mba)/state[@ref = $toState]/preceding-sibling::state
-        else
-            analysis:getStateLog($mba)/state:)
-
-    (:let $cycleTimeOfInstance := fn:sum(
-            (for $entry in $stateLog return
-                analysis:getCycleTimeOfStateLogEntry($entry)), ()
-    ):)
-
-    (:return $cycleTimeOfInstance:)
-    return $stateLog
-};
-
-(: returns cycle time of top level from MBA :)
 (: as time between start and end :)
 declare function analysis:getCycleTimeOfInstance($mba as element(),
         $toState as xs:string?
@@ -114,7 +91,7 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
 };
 
 (: returns average cycle time of a state :)
-declare function analysis:averageCycleTime($mba as element(),
+declare function analysis:getAverageCycleTime($mba as element(),
         $level as xs:string,
         $inState as xs:string,
         $stateId as xs:string
@@ -208,39 +185,102 @@ declare function analysis:getStateLog($mba as element()
     return <stateLog>{map:get($stateLog, 'stateLog')}</stateLog>
 };
 
-declare function analysis:getTransitionProbability($mba as element(),
-        $level as xs:string,
-        $source as xs:string?, (: $source should not be optional.. :)
-        $target as xs:string,
-        $event as xs:string?
-) (:as xs:decimal:) {
+declare function analysis:getTransitionProbability($transition as element()
+) as xs:decimal {
+    let $mba := $transition/ancestor::mba:mba[last()]
+    let $level := $transition/ancestor::mba:topLevel[1]/@name
     let $descendants := mba:getDescendantsAtLevel($mba, $level)
 
-    let $transitions := for $descendant in $descendants
-        let $scxml := mba:getSCXML($descendant)
-        let $log := $scxml/sc:datamodel/sc:data[@id = "_x"]/xes:log
-        let $events := $log//xes:event
+    let $source := sc:getSourceState($transition)/@id
+    let $target := $transition/@target
+    let $cond := $transition/@cond
+    let $event := $transition/@event
 
-        return
-            for $event in $events
-            let $transition := analysis:getTransitionsForLogEntry($scxml, $event)
-
-            let $entrySet := sc:computeEntrySet($transition)
-            let $configuration := sc:getSourceState($transition)/ancestor-or-self::sc:state |
-                    sc:getSourceState($transition)/ancestor-or-self::sc:parallel
-            let $exitSet := sc:computeExitSet($configuration, $transition)
-
+    (:
+        for each descendent, check (via event log)
+         - how often the source state of transition is left
+         - how often the target state is entered via $transition
+            - check for $source, $target, $event, $cond
+    :)
+    let $prob :=
+        for $descendant in $descendants
+            let $log := mba:getSCXML($descendant)/sc:datamodel/sc:data[@id = "_x"]/xes:log
             return
-                if (fn:exists($exitSet[@id=$source])) then
-                    <log exit='{$exitSet[@id=$source]/@id}' enter='{$entrySet[@id=$target]/@id}'/>
-                else ()
+                for $event in $log/xes:trace/xes:event
+                    let $transitionEvent := analysis:getTransitionsForLogEntry(mba:getSCXML($descendant), $event)
+
+                    return (: left-state is true if state was left, took-transition is true if transition was taken :)
+                        <log leftState='{analysis:stateIsLeft($transitionEvent, $source)}' tookTransition='{analysis:compareTransitions($transition, $transitionEvent)}'/>
+    return fn:count($prob[@tookTransition='true']) div fn:count($prob[@leftState='true'])
+};
+
+declare function analysis:stateIsLeft($transition as element(),
+        $state as xs:string
+) (:as xs:boolean:) {
+(:
+    true if:
+        1. $transition/source = $state AND $transition/target is neither $state nor a substate
+        2. $transition/source is a substate of $state AND $transition/target is neither $state nor a substate
+    else false
+:)
+    let $sourceTransition := fn:string(sc:getSourceState($transition)/@id)
+    let $targetTransition := fn:string($transition/@target)
+    let $scxml := $transition/ancestor::sc:scxml[1]
+    let $stateAndSubstates := analysis:getStateAndSubstates($scxml, $state)
 
     return
-        <result event='{$event}' source='{$source}' target='{$target}'>
-            <left-source>{fn:count($transitions[@exit=$source])}</left-source>
-            <entered-target>{fn:count($transitions[@enter=$target])}</entered-target>
-            <probability>{fn:count($transitions[@enter=$target]) div fn:count($transitions[@exit=$source])}</probability>
-        </result>
+        if ($targetTransition and ($state = $sourceTransition) and (not(functx:is-value-in-sequence($targetTransition, $stateAndSubstates)))) then
+            true() (: 1. :)
+        else if ($targetTransition and (functx:is-value-in-sequence($sourceTransition, $stateAndSubstates)) and (not(functx:is-value-in-sequence($targetTransition, $stateAndSubstates)))) then
+            true() (: 2. :)
+        else
+            false()
+(: ToDo: what if $state is a substate of $transition/source ? split occurences to substates? :)
+};
+
+declare function analysis:compareTransitions($origTransition as element(),
+    $newTransition as element()
+) as xs:boolean {
+(:
+    check if $origTransition is the 'same' as $newTransition
+    rules:
+        1. $newTransition may have a more specialized source state
+        2. $newTransition may have a more specialized target state
+        3. condition may be added to $newTransition (if $origTransition had no cond)
+        4. conditions in $newTransition may be specialized, by adding terms with 'AND'
+        5. dot notation of events
+:)
+    let $origSource := fn:string(sc:getSourceState($origTransition)/@id)
+    let $origTarget := fn:string($origTransition/@target)
+
+    let $scxml := $origTransition/ancestor::sc:scxml[1]
+    let $origSourceAndSubstates := analysis:getStateAndSubstates($scxml, $origSource)
+    let $origTargetAndSubstates := analysis:getStateAndSubstates($scxml, $origTarget)
+
+    return
+        if (
+            (: 1. :)(functx:is-value-in-sequence(fn:string(sc:getSourceState($newTransition)/@id), $origSourceAndSubstates)) and
+            (: 2. :)(functx:is-value-in-sequence(fn:string($newTransition/@target), $origTargetAndSubstates)) and
+            (: 3&4:)(not($origTransition/@cond) or analysis:compareConditions($origTransition/@cond, $newTransition/@cond))
+        (: ToDo: dot notation :)
+        ) then
+            true()
+        else
+            false()
+};
+
+declare function analysis:getStateAndSubstates($scxml as element(),
+    $state as xs:string
+) as xs:string* {
+    $scxml//(sc:state|sc:parallel|sc:initial)[@id=$state]/(descendant-or-self::sc:state|descendant-or-self::sc:parallel|descendant-or-self::sc:initial)/fn:string(@id)
+};
+
+declare function analysis:compareConditions($origCond as xs:string,
+    $newCond as xs:string
+) {
+    (fn:compare($origCond, $newCond)=0) or
+    ((fn:compare($origCond, fn:substring($newCond, 1, fn:string-length($origCond)))=0) and
+    (fn:compare(' and ', fn:substring($newCond, fn:string-length($origCond)+1, 5))=0))
 };
 
 (: Helper :)
@@ -312,18 +352,3 @@ declare function analysis:getCreationTime($mba as element()
 ) as xs:dateTime {
     xs:dateTime(analysis:getStateLog($mba)/state/@from[1])
 };
-
-
-(: from probability
-
-    (: find transition which fits to params; from state chart :)
-    let $transition :=
-        $scxml//sc:transition[
-        (not($target or @target) or sc:computeEntrySet(.)/@id = $target) and
-                (not($source) or ../ancestor-or-self::sc:state/@id = $source
-                        or ../ancestor-or-self::sc:parallel/@id = $source) and
-                (not($event or @event) or @event = $event) and
-                (not($eventCond or @cond) or @cond = $eventCond) and
-                (not($eventInitial) or (../../@id = $eventInitial or ../../@name = $eventInitial))
-        ]
-:)

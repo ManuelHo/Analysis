@@ -54,7 +54,13 @@ let $n :=
     <state id='Archive' factor='7'/>
 </states>
 
-return analysis:getTotalCycleTime($mba, 'operationalInsurance', 'End2', $n)
+let $transition := $mbaTactCar//sc:transition[@event='startDevelopment']
+
+return analysis:getTransitionProbability($transition)
+
+(:$isInState('Archive_f') and $isInState('Print_f'):)
+
+(:return analysis:getTotalCycleTime($mba, 'operationalInsurance', 'End2', $n):)
 
 (:return <b>{mba:getSCXML($mbaTactCar)/(descendant-or-self::sc:state|descendant-or-self::sc:parallel|descendant-or-self::sc:initial)}</b>:)
 
@@ -62,7 +68,7 @@ return analysis:getTotalCycleTime($mba, 'operationalInsurance', 'End2', $n)
 
 (:return sc:computeEntrySet($mbaOptCarClerk//sc:transition[@event="finishedCollecting"]):)
 
-(:return analysis:averageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts"):) (:15M:)
+(:return analysis:getAverageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts"):) (:15M:)
 
 (:return analysis:getStateLog($mbaOptCarClerk):)
 

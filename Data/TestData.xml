@@ -92,13 +92,13 @@
 					  <sc:transition event="finishedCollecting" target="Store"/>
 					</sc:state>
 					<sc:parallel id="Store">
-						<sc:state id="ArchiveComp">
+						<sc:state id="ArchiveComp" initial="Archive">
 							<sc:state id="Archive">
 								<sc:transition event="archived" target="Archive_f"/>
 							</sc:state>
 							<sc:state id="Archive_f"/>
 						</sc:state>
-						<sc:state id="PrintComp">
+						<sc:state id="PrintComp" initial="Print">
 							<sc:state id="Print">
 								<sc:transition event="printed" target="Print_f"/>
 							</sc:state>
@@ -206,13 +206,13 @@
 						  <sc:transition event="finishedCollecting" target="Store"/>
 						</sc:state>
 						<sc:parallel id="Store">
-							<sc:state id="ArchiveComp">
+							<sc:state id="ArchiveComp" initial="Archive">
 								<sc:state id="Archive">
 									<sc:transition event="archived" target="Archive_f"/>
 								</sc:state>
 								<sc:state id="Archive_f"/>
 							</sc:state>
-							<sc:state id="PrintComp">
+							<sc:state id="PrintComp" initial="Print">
 								<sc:state id="Print">
 									<sc:transition event="printed" target="Print_f"/>
 								</sc:state>
@@ -418,13 +418,13 @@
 						  <sc:transition event="finishedCollecting" target="Store"/>
 						</sc:state>
 						<sc:parallel id="Store">
-							<sc:state id="ArchiveComp">
+							<sc:state id="ArchiveComp" initial="Archive">
 								<sc:state id="Archive">
 									<sc:transition event="archived" target="Archive_f"/>
 								</sc:state>
 								<sc:state id="Archive_f"/>
 							</sc:state>
-							<sc:state id="PrintComp">
+							<sc:state id="PrintComp" initial="Print">
 								<sc:state id="Print">
 									<sc:transition event="printed" target="Print_f"/>
 								</sc:state>
@@ -526,13 +526,13 @@
 						  <sc:transition event="finishedCollecting" target="Store"/>
 						</sc:state>
 						<sc:parallel id="Store">
-							<sc:state id="ArchiveComp">
+							<sc:state id="ArchiveComp" initial="Archive">
 								<sc:state id="Archive">
 									<sc:transition event="archived" target="Archive_f"/>
 								</sc:state>
 								<sc:state id="Archive_f"/>
 							</sc:state>
-							<sc:state id="PrintComp">
+							<sc:state id="PrintComp" initial="Print">
 								<sc:state id="Print">
 									<sc:transition event="printed" target="Print_f"/>
 								</sc:state>

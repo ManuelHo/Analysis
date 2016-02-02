@@ -274,7 +274,7 @@ declare function mba:getAncestorAtLevel($mba   as element(),
   else ()
 };
 
-declare function mba:getAncestors($mba   as element()) as element() {
+declare function mba:getAncestors($mba   as element()) as element()* {
   if($mba/@hierarchy = 'simple') then
     $mba/ancestor::mba:mba
   else ()

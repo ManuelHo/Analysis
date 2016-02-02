@@ -37,24 +37,12 @@ let $mbaOptCarClerk := $testData//mba:mba[@name="MyCarInsuranceClerk"]
 }:)
 
 (:return analysis:getActualAverageLambda($mba, 'operationalInsurance', $timeFunc):)
-(: return mba:getAncestors($mbaOptCarClerk):) (: Cannot promote node()* to element(). :)
-(: return mba:getAncestors($mbaTactCar) :) (: works fine! but why? :)
-
-(:return analysis:getTransitionProbability($mba,
-        'tacticalInsurance',
-        'DevelopProducts',
-        'End1',
-        ()
-)
-:)
 
 let $n :=
 <states>
     <state id="ImplementProduct" factor='3'/>
     <state id='ChooseProducts' factor='7'/>
 </states>
-
-let $transition := $mbaTactCar//sc:transition[@event='startCoding']
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
@@ -77,3 +65,7 @@ return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', 'End1', $n)
 (:return analysis:getCreationTime($mba):)
 
 (:return analysis:getTransitionProbability($transition):)
+
+(:let $scxml := analysis:getSCXMLAtLevel($mba, 'tacticalInsurance')
+let $state := $scxml//(sc:state|sc:parallel)[@id='End1']
+return analysis:getTransitionProbabilityForTargetState($scxml, $state):)

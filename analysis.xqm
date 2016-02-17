@@ -99,7 +99,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
             (: <sc:initial>, @initial or <sc:parallel>: use probability of parent :)
             analysis:getTransitionProbabilityForTargetState($scxml, $state/..)
         else
-            let $transitions := $scxml//sc:transition[@target=$state/@id]
+            let $transitions := $scxml//sc:transition[@target=$state/@id](: ToDo: include substates :)
             return fn:sum(
                 for $transition in $transitions
                 let $source := sc:getSourceState($transition)
@@ -114,6 +114,7 @@ declare function analysis:getTransitionProbability($transition as element()
     let $mba := $transition/ancestor::mba:mba[last()]
     let $level := $transition/ancestor::mba:elements[1]/../@name
     let $descendants := mba:getDescendantsAtLevel($mba, $level)
+    let $sourceState := sc:getSourceState($transition)
 
     (:
         for each descendent, check (via event log)
@@ -125,17 +126,19 @@ declare function analysis:getTransitionProbability($transition as element()
     let $prob :=
         (: check if $transition/source is initial state :)
         (: assumption: if yes, probability is 1. As there is exactly one transition in an sc:initial element :)
-        for $descendant in $descendants
-        let $log := mba:getSCXML($descendant)/sc:datamodel/sc:data[@id = "_x"]/xes:log
-        let $sourceState := sc:getSourceState($transition)
-        return
-            for $event in $log/xes:trace/xes:event
-            let $transitionEvent := analysis:getTransitionsForLogEntry(mba:getSCXML($descendant), $event)
-            return (: left-state is true if state was left, took-transition is true if transition was taken :)
-                if (fn:compare(fn:name($sourceState), 'sc:initial')=0) then
-                    <log leftState='true' tookTransition='true'/> (: probability: 1 :)
-                else
-                    <log leftState='{analysis:stateIsLeft($transitionEvent, $sourceState/@id)}' tookTransition='{analysis:compareTransitions($transition, $transitionEvent)}'/>
+        if (fn:compare(fn:name($sourceState), 'sc:initial')=0) then
+            <log leftState='true' tookTransition='true'/> (: probability: 1 :)
+        else
+            for $descendant in $descendants
+            let $log := mba:getSCXML($descendant)/sc:datamodel/sc:data[@id = "_x"]/xes:log
+            return
+                for $event in $log/xes:trace/xes:event
+                    let $transitionEvent := analysis:getTransitionsForLogEntry(mba:getSCXML($descendant), $event)
+                    return (: left-state is true if state was left, took-transition is true if transition was taken :)
+                        <log leftState='{analysis:stateIsLeft($transitionEvent, $sourceState/@id)}' tookTransition='{analysis:compareTransitions($transition, $transitionEvent)}'/>
+                        (:if (fn:compare(fn:name($sourceState), 'sc:initial')=0) then
+                            <log leftState='true' tookTransition='true'/> (: probability: 1 :)
+                        else:)
 
     return
         if (fn:count($prob[@leftState='true'] > 0)) then
@@ -153,7 +156,7 @@ declare function analysis:stateIsLeft($transition as element(),
         2. $transition/source is a substate of $state AND $transition/target is neither $state nor a substate
     else false
 :)
-    let $sourceTransition := fn:string(sc:getSourceState($transition)/@id) (: ToDo: not working for sc:initial! :)
+    let $sourceTransition := fn:string(sc:getSourceState($transition)/@id) (: ToDo: not working for sc:initial! If initial, return true :)
     let $targetTransition := fn:string($transition/@target)
     let $scxml := $transition/ancestor::sc:scxml[1]
     let $stateAndSubstates := analysis:getStateAndSubstates($scxml, $state)
@@ -165,7 +168,7 @@ declare function analysis:stateIsLeft($transition as element(),
             true() (: 2. :)
         else
             false()
-(: ToDo: what if $state is a substate of $transition/source ? split occurences to substates? :)
+(: if $state is a substate of $transition/source --> no action, defined in documentation :)
 };
 
 declare function analysis:compareTransitions($origTransition as element(),
@@ -182,6 +185,7 @@ declare function analysis:compareTransitions($origTransition as element(),
 :)
     let $origSource := fn:string(sc:getSourceState($origTransition)/@id)
     let $origTarget := fn:string($origTransition/@target)
+    let $origEvent := fn:string($origTransition/@event)
 
     let $scxml := $origTransition/ancestor::sc:scxml[1]
     let $origSourceAndSubstates := analysis:getStateAndSubstates($scxml, $origSource)
@@ -191,8 +195,9 @@ declare function analysis:compareTransitions($origTransition as element(),
         if (
         (: 1. :)(not($origTransition/../@id) or functx:is-value-in-sequence(fn:string(sc:getSourceState($newTransition)/@id), $origSourceAndSubstates)) and
                 (: 2. :)(not($origTransition/@target) or functx:is-value-in-sequence(fn:string($newTransition/@target), $origTargetAndSubstates)) and
-                (: 3&4:)(not($origTransition/@cond) or analysis:compareConditions($origTransition/@cond, $newTransition/@cond))
-        (: ToDo: event, dot notation :)
+                (: 3&4:)(not($origTransition/@cond) or analysis:compareConditions($origTransition/@cond, $newTransition/@cond)) and
+                (: 5. :)(not($origEvent) or analysis:compareEvents($origEvent, fn:string($newTransition/@event)))
+
         ) then
             true()
         else
@@ -305,7 +310,15 @@ declare function analysis:compareConditions($origCond as xs:string,
 ) {
     (fn:compare($origCond, $newCond)=0) or
     ((fn:compare($origCond, fn:substring($newCond, 1, fn:string-length($origCond)))=0) and
-    (fn:compare(' and ', fn:substring($newCond, fn:string-length($origCond)+1, 5))=0))
+        (fn:compare(' and ', fn:substring($newCond, fn:string-length($origCond)+1, 5))=0))
+};
+
+declare function analysis:compareEvents($origEvent as xs:string,
+        $newEvent as xs:string
+) as xs:boolean {
+    (fn:compare($origEvent, $newEvent)=0) or
+    ((fn:compare($origEvent, fn:substring($newEvent, 1, fn:string-length($origEvent)))=0) and
+            (fn:compare('.', fn:substring($newEvent, fn:string-length($origEvent)+1, 1))=0))
 };
 
 (: Helper :)

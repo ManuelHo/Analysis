@@ -46,7 +46,9 @@ let $n :=
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
-return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', 'End1', $n)
+(:return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', 'End1', $n):)
+
+return analysis:compareEvents("hello", "hello123.blah")
 
 (: ################## Testcalls ################## :)
 

@@ -69,7 +69,7 @@ declare function analysis:getTotalCycleTimeRecursive($mba as element(),
         (: current state is changed :)
             element{'state'}{$state/@id,
                 $changedStates/state[@id=$state/@id]/@factor,
-                attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id)},
+                attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, ())},
                 attribute transitionProbability {analysis:getTransitionProbabilityForTargetState($scxml, $state)}}
         else if ($state/(descendant::sc:state|descendant::sc:parallel)/@id = $changedStates/state/@id) then
         (: id of at least one descendant of $entry/@ref in $changedStates/state/@id :)
@@ -78,15 +78,15 @@ declare function analysis:getTotalCycleTimeRecursive($mba as element(),
         else
         (: neither current nor descendant states are changed :)
             element{'state'}{$state/@id,
-                attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id)},
+                attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, ())},
                 attribute transitionProbability {analysis:getTransitionProbabilityForTargetState($scxml, $state)}}
 };
 
 declare function analysis:getTotalCycleTime2($mba as element(),
-    $level as xs:string,
-    $inState as xs:string,
-    $toState as xs:string?,
-    $changedStates as element()*
+        $level as xs:string,
+        $inState as xs:string,
+        $toState as xs:string?,
+        $changedStates as element()*
 ) as element()* {
     <TBD></TBD>
     (: flow analysis with $toState :)
@@ -99,7 +99,7 @@ declare function analysis:getTotalCycleTime2($mba as element(),
 
 (: calculate absolute probabilities of transitions, used as factors for total cycle time :)
 declare function analysis:getTransitionProbabilityForTargetState($scxml as element(),
-    $state as element()
+        $state as element()
 ) as xs:decimal {
         if (
             (fn:compare(fn:name($state),'sc:initial')=0) and
@@ -225,10 +225,12 @@ declare function analysis:compareTransitions($origTransition as element(),
 };
 
 (: returns average cycle time of a state :)
+(: $toState: include only decendents which have been/are in $toState :)
 declare function analysis:getAverageCycleTime($mba as element(),
         $level as xs:string,
         $inState as xs:string,
-        $stateId as xs:string
+        $stateId as xs:string,
+        $toState as xs:string?
 ) as xs:duration {
     let $descendants :=
         mba:getDescendantsAtLevel($mba, $level)
@@ -236,14 +238,18 @@ declare function analysis:getAverageCycleTime($mba as element(),
 
     let $cycleTimes :=
         for $descendant in $descendants
-        let $stateLog := analysis:getStateLog($descendant)
-        return fn:sum(
-                (
-                    for $entry in $stateLog/state[@ref = $stateId] return
-                        analysis:getCycleTimeOfStateLogEntry($entry)
-                ),
-                ()
-        )
+            let $stateLog := analysis:getStateLog($descendant)
+            return
+                if ((not($toState)) or ($stateLog/state/@ref = $toState)) then
+                    fn:sum(
+                            (
+                                for $entry in $stateLog/state[@ref = $stateId] return
+                                    analysis:getCycleTimeOfStateLogEntry($entry)
+                            ),
+                            ()
+                    )
+                else
+                    ()
 
     return fn:avg($cycleTimes)
 };

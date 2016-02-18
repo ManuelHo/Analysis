@@ -46,9 +46,7 @@ let $n :=
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
-(:return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', 'End1', $n):)
-
-return analysis:compareEvents("hello", "hello123.blah")
+return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', false(), $n)
 
 (: ################## Testcalls ################## :)
 
@@ -68,6 +66,8 @@ return analysis:compareEvents("hello", "hello123.blah")
 
 (:return analysis:getTransitionProbability($transition):)
 
+(: return analysis:compareEvents("hello", "hello123.blah") :)
+
 (:let $scxml := analysis:getSCXMLAtLevel($mba, 'tacticalInsurance')
-let $state := $scxml//(sc:state|sc:parallel)[@id='End1']
+let $state := $scxml//(sc:state|sc:parallel)[@id='ImplementProduct']
 return analysis:getTransitionProbabilityForTargetState($scxml, $state):)

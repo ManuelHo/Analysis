@@ -40,27 +40,28 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
 declare function analysis:getTotalCycleTime($mba as element(),
     $level as xs:string,
     $inState as xs:string,
-    $toState as xs:string?,
+    $includeArchival as xs:boolean?,
     $changedStates as element()*
 ) as element()* {
-    let $scxml := analysis:getSCXMLAtLevel($mba, $level)
+    let $scxml := analysis:getSCXMLAtLevel($mba, $level) (: ToDo: include $includeArchival :)
 
     let $stateList :=
       for $state in $scxml/(sc:state|sc:parallel) (: 'first level' states except for sc:initial :)
         return
-            analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $toState, $changedStates, $state/@id)
+            analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $includeArchival, $changedStates, $state/@id)
 
   return $stateList
 };
 
+(: called for each state :)
 declare function analysis:getTotalCycleTimeRecursive($mba as element(),
         $level as xs:string,
         $inState as xs:string,
-        $toState as xs:string?, (: ToDo: include $toState, how to use it? :)
+        $includeArchival as xs:boolean?,
         $changedStates as element()*,
         $stateId as xs:string
 ) as element()* {
-    let $scxml := analysis:getSCXMLAtLevel($mba, $level)
+    let $scxml := analysis:getSCXMLAtLevel($mba, $level) (: ToDo: include $includeArchival :)
     let $state := $scxml//(sc:state|sc:parallel)[@id=$stateId]
 
     return
@@ -73,12 +74,27 @@ declare function analysis:getTotalCycleTimeRecursive($mba as element(),
         else if ($state/(descendant::sc:state|descendant::sc:parallel)/@id = $changedStates/state/@id) then
         (: id of at least one descendant of $entry/@ref in $changedStates/state/@id :)
             for $substate in $state/(sc:state|sc:parallel)
-                return analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $toState, $changedStates, $substate/@id)
+                return analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $includeArchival, $changedStates, $substate/@id)
         else
         (: neither current nor descendant states are changed :)
             element{'state'}{$state/@id,
                 attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id)},
                 attribute transitionProbability {analysis:getTransitionProbabilityForTargetState($scxml, $state)}}
+};
+
+declare function analysis:getTotalCycleTime2($mba as element(),
+    $level as xs:string,
+    $inState as xs:string,
+    $toState as xs:string?,
+    $changedStates as element()*
+) as element()* {
+    <TBD></TBD>
+    (: flow analysis with $toState :)
+
+    (: use only descendants which have been or are in $toState :)
+
+    (: perform flow analysis until @target of transition = $toState :)
+
 };
 
 (: calculate absolute probabilities of transitions, used as factors for total cycle time :)
@@ -99,7 +115,11 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
             (: <sc:initial>, @initial or <sc:parallel>: use probability of parent :)
             analysis:getTransitionProbabilityForTargetState($scxml, $state/..)
         else
-            let $transitions := $scxml//sc:transition[@target=$state/@id](: ToDo: include substates :)
+            (: include transitions where target is a substate of $state, but only if source of transition is not also a substate of $state :)
+            let $substates := analysis:getStateAndSubstates($scxml, $state/@id)
+            let $transitions := $scxml//sc:transition[@target=$substates][not(functx:is-value-in-sequence(../@id, $substates))]
+            (:let $transitions := $scxml//sc:transition[@target=$state/@id]:)
+
             return fn:sum(
                 for $transition in $transitions
                 let $source := sc:getSourceState($transition)

@@ -11,7 +11,7 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
         $level as xs:string,
         $toState as xs:string?
 ) as xs:duration {
-    let $descendants := mba:getDescendantsAtLevel($mba, $level)
+    let $descendants := analysis:getDescendantsAtLevel($mba, $level, $toState)
 
     let $cycleTimes :=
         for $descendant in $descendants
@@ -50,7 +50,7 @@ declare function analysis:getTotalCycleTime($mba as element(),
         return
             analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $includeArchival, $changedStates, $state/@id)
 
-  return $stateList
+    return $stateList
 };
 
 (: called for each state :)
@@ -70,7 +70,7 @@ declare function analysis:getTotalCycleTimeRecursive($mba as element(),
             element{'state'}{$state/@id,
                 $changedStates/state[@id=$state/@id]/@factor,
                 attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, ())},
-                attribute transitionProbability {analysis:getTransitionProbabilityForTargetState($scxml, $state)}}
+                attribute transitionProbability {analysis:getTransitionProbabilityForTargetState($scxml, $state, ())}}
         else if ($state/(descendant::sc:state|descendant::sc:parallel)/@id = $changedStates/state/@id) then
         (: id of at least one descendant of $entry/@ref in $changedStates/state/@id :)
             for $substate in $state/(sc:state|sc:parallel)
@@ -79,61 +79,78 @@ declare function analysis:getTotalCycleTimeRecursive($mba as element(),
         (: neither current nor descendant states are changed :)
             element{'state'}{$state/@id,
                 attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, ())},
-                attribute transitionProbability {analysis:getTransitionProbabilityForTargetState($scxml, $state)}}
+                attribute transitionProbability {analysis:getTransitionProbabilityForTargetState($scxml, $state, ())}}
 };
 
+(: flow analysis with $toState :)
+(: assumption: $toState must not be a substate of a changedState and vice versa :)
 declare function analysis:getTotalCycleTime2($mba as element(),
         $level as xs:string,
         $inState as xs:string,
         $toState as xs:string?,
         $changedStates as element()*
 ) as element()* {
-    <TBD></TBD>
-    (: flow analysis with $toState :)
+    let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
-    (: use only descendants which have been or are in $toState :)
+    (: use only descendants which have been or are in $toState --> param of getAverageCycleTime :)
 
     (: perform flow analysis until @target of transition = $toState :)
 
+    (: get all transitions with @target = stateOrSubstate of $toState :)
+    (:  if on is a substate of another, take all substates of that level instead of parent :)
+    (:  but if one substate of them is changed, take level of changed states :)
+    let $transitions := $scxml//sc:transition[@target=$toState]
+    let $sourceStates := $transitions/../@id
+
+    (: for each: get average cycle time and probability :)
+
+    (: repeat until initial state is reached :)
+    return
+        for $r in $sourceStates
+            return <state>{$r}</state>
 };
 
 (: calculate absolute probabilities of transitions, used as factors for total cycle time :)
+(: $toState: include only descendants which have been/are in $toState :)
 declare function analysis:getTransitionProbabilityForTargetState($scxml as element(),
-        $state as element()
+        $state as element(),
+        $toState as xs:string?
 ) as xs:decimal {
         if (
             (fn:compare(fn:name($state),'sc:initial')=0) and
             (fn:compare(fn:name($state/..),'sc:scxml')=0)
         ) then
         (: initial state of scxml :)
-                1
+                1   (: ToDo: question :)
         else if (
             (fn:compare(fn:name($state),'sc:initial')=0) or
             (fn:compare(fn:string($state/../@initial), fn:string($state/@id))=0) or
             (fn:compare(fn:name($state/..),'sc:parallel')=0)
         ) then
             (: <sc:initial>, @initial or <sc:parallel>: use probability of parent :)
-            analysis:getTransitionProbabilityForTargetState($scxml, $state/..)
+            analysis:getTransitionProbabilityForTargetState($scxml, $state/.., $toState)
         else
             (: include transitions where target is a substate of $state, but only if source of transition is not also a substate of $state :)
             let $substates := analysis:getStateAndSubstates($scxml, $state/@id)
             let $transitions := $scxml//sc:transition[@target=$substates][not(functx:is-value-in-sequence(../@id, $substates))]
             (:let $transitions := $scxml//sc:transition[@target=$state/@id]:)
 
+            (: ToDo: problem with rework loops! Not possible at the moment :)
             return fn:sum(
                 for $transition in $transitions
                 let $source := sc:getSourceState($transition)
                 return
-                    (analysis:getTransitionProbability($transition)*analysis:getTransitionProbabilityForTargetState($scxml, $source)),()
+                    (analysis:getTransitionProbability($transition, $toState)*analysis:getTransitionProbabilityForTargetState($scxml, $source, $toState)),()
             )
 };
 
 (: relative probability :)
-declare function analysis:getTransitionProbability($transition as element()
+declare function analysis:getTransitionProbability($transition as element(),
+    $toState as xs:string?
 ) (:as xs:decimal:) {
     let $mba := $transition/ancestor::mba:mba[last()]
     let $level := $transition/ancestor::mba:elements[1]/../@name
-    let $descendants := mba:getDescendantsAtLevel($mba, $level)
+    let $descendants := analysis:getDescendantsAtLevel($mba, $level, $toState)
     let $sourceState := sc:getSourceState($transition)
 
     (:
@@ -176,7 +193,7 @@ declare function analysis:stateIsLeft($transition as element(),
         2. $transition/source is a substate of $state AND $transition/target is neither $state nor a substate
     else false
 :)
-    let $sourceTransition := fn:string(sc:getSourceState($transition)/@id) (: ToDo: not working for sc:initial! If initial, return true :)
+    let $sourceTransition := fn:string(sc:getSourceState($transition)/@id) (: ToDo: not working for sc:initial! :)
     let $targetTransition := fn:string($transition/@target)
     let $scxml := $transition/ancestor::sc:scxml[1]
     let $stateAndSubstates := analysis:getStateAndSubstates($scxml, $state)
@@ -233,35 +250,32 @@ declare function analysis:getAverageCycleTime($mba as element(),
         $toState as xs:string?
 ) as xs:duration {
     let $descendants :=
-        mba:getDescendantsAtLevel($mba, $level)
+        analysis:getDescendantsAtLevel($mba, $level, $toState)
         [mba:isInState(., $inState)]
 
     let $cycleTimes :=
         for $descendant in $descendants
             let $stateLog := analysis:getStateLog($descendant)
             return
-                if ((not($toState)) or ($stateLog/state/@ref = $toState)) then
-                    fn:sum(
-                            (
-                                for $entry in $stateLog/state[@ref = $stateId] return
-                                    analysis:getCycleTimeOfStateLogEntry($entry)
-                            ),
-                            ()
-                    )
-                else
-                    ()
+                fn:sum(
+                        (
+                            for $entry in $stateLog/state[@ref = $stateId] return
+                                analysis:getCycleTimeOfStateLogEntry($entry)
+                        ),
+                        ()
+                )
 
     return fn:avg($cycleTimes)
 };
 
 (: returns total cycle time an instance was in given states :)
+(: $states must not be substates of each other! :)
 declare function analysis:getTotalCycleTimeInStates($mba as element(),
         $level as xs:string,
         $states as xs:string*
 ) as xs:duration {
     let $stateLog := analysis:getStateLog($mba)
 
-    (: ToDo: include $level and check if $states are substates of each other :)
     return fn:sum(
             (
                 for $entry in $stateLog/state[functx:is-value-in-sequence(@ref, $states)] return
@@ -396,6 +410,23 @@ declare function analysis:getSCXMLAtLevel($mba as element(),
 ) as element() {
     ($mba/mba:topLevel[@name=$level])/mba:elements/sc:scxml |
             ($mba//mba:childLevel[@name=$level])[1]/mba:elements/sc:scxml
+};
+
+declare function analysis:getDescendantsAtLevel($mba as element(),
+        $level as xs:string,
+        $toState as xs:string?
+) as element()* {
+    let $descendants := mba:getDescendantsAtLevel($mba, $level)
+        return
+            if ($toState) then
+                for $d in $descendants
+                    return
+                        if (analysis:getStateLog($d)/state[@ref=$toState]) then
+                            $d
+                        else
+                            ()
+            else
+                $descendants
 };
 
 declare function analysis:getActualAverageWIP($mba as element(),

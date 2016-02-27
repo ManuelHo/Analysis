@@ -1,4 +1,4 @@
-<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" name="MyInsuranceCompany" hierarchy="simple">
+<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="MyInsuranceCompany" hierarchy="simple">
   <topLevel name="strategicInsurance">
 	<elements>
       <sc:scxml name="StrategicInsurance">
@@ -43,7 +43,7 @@
           <sc:transition event="handleIncident"/>
 		  <sc:transition event="closeCompany" target="Closed"/>
         </sc:state>
-		<sc:state id="Closed">
+		<sc:state id="Closed" mba:isArchiveState="true">
 		</sc:state>
       </sc:scxml>
     </elements>
@@ -71,7 +71,7 @@
 						<sc:transition event="finishedCoding" target="End1"/>
 					</sc:state>
 				</sc:state>
-				<sc:state id="End1">
+				<sc:state id="End1" mba:isArchiveState="true">
 				</sc:state>
 			</sc:scxml>
 		</elements>
@@ -109,7 +109,7 @@
 					<sc:state id="Pay">
 						<sc:transition event="finishedPayment" target="End2"/>
 					</sc:state>
-					<sc:state id="End2">
+					<sc:state id="End2" mba:isArchiveState="true">
 					</sc:state>
 				  </sc:scxml>
 			</elements>
@@ -185,7 +185,7 @@
 							<sc:transition event="finishedCoding" target="End1"/>
 						</sc:state>
 					</sc:state>
-					<sc:state id="End1">
+					<sc:state id="End1" mba:isArchiveState="true">
 					</sc:state>
 				</sc:scxml>
 			</elements>
@@ -223,7 +223,7 @@
 						<sc:state id="Pay">
 							<sc:transition event="finishedPayment" target="End2"/>
 						</sc:state>
-						<sc:state id="End2">
+						<sc:state id="End2" mba:isArchiveState="true">
 						</sc:state>
 					  </sc:scxml>
 				</elements>
@@ -321,7 +321,7 @@
 							<sc:state id="Pay">
 								<sc:transition event="finishedPayment" target="End2"/>
 							</sc:state>
-							<sc:state id="End2">
+							<sc:state id="End2" mba:isArchiveState="true">
 							</sc:state>
 						  </sc:scxml>
 					</elements>
@@ -397,7 +397,7 @@
 							<sc:transition event="finishedCoding" target="End1"/>
 						</sc:state>
 					</sc:state>
-					<sc:state id="End1">
+					<sc:state id="End1" mba:isArchiveState="true">
 					</sc:state>
 				</sc:scxml>
 			</elements>
@@ -435,7 +435,7 @@
 						<sc:state id="Pay">
 							<sc:transition event="finishedPayment" target="End2"/>
 						</sc:state>
-						<sc:state id="End2">
+						<sc:state id="End2" mba:isArchiveState="true">
 						</sc:state>
 					  </sc:scxml>
 				</elements>
@@ -505,7 +505,7 @@
 							<sc:transition event="finishedCoding" target="End1"/>
 						</sc:state>
 					</sc:state>
-					<sc:state id="End1">
+					<sc:state id="End1" mba:isArchiveState="true">
 					</sc:state>
 				</sc:scxml>
 			</elements>
@@ -543,7 +543,7 @@
 						<sc:state id="Pay">
 							<sc:transition event="finishedPayment" target="End2"/>
 						</sc:state>
-						<sc:state id="End2">
+						<sc:state id="End2" mba:isArchiveState="true">
 						</sc:state>
 					  </sc:scxml>
 				</elements>

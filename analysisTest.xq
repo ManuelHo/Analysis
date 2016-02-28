@@ -53,12 +53,10 @@ let $n1 :=
         <state id='CollectData' factor='7'/>
     </states>
 let $inState1 := 'End2'
-let $toState1 := 'Archive'
+let $toState1 := 'Pay'
 let $level1 := 'operationalInsurance'
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
-
-let $stateId := 'Pay'
 
 return analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)
 
@@ -82,6 +80,9 @@ return analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)
 
 (: return analysis:compareEvents("hello", "hello123.blah") :)
 
-(:let $scxml := analysis:getSCXMLAtLevel($mba, 'tacticalInsurance')
-let $state := $scxml//(sc:state|sc:parallel)[@id='DevelopProducts']
+(:let $scxml := analysis:getSCXMLAtLevel($mba, 'operationalInsurance')
+let $state := $scxml//(sc:state|sc:parallel)[@id='Archive']
 return analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true()):)
+
+(:return analysis:getTransitionsToState($scxml, $state, true(), true()):)
+

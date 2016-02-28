@@ -40,13 +40,27 @@ let $mbaOptCarClerk := $testData//mba:mba[@name="MyCarInsuranceClerk"]
 
 let $n :=
 <states>
-    <state id="ImplementProduct" factor='3'/>
+    <state id="CheckFeasibility" factor='3'/>
     <state id='ChooseProducts' factor='7'/>
 </states>
+let $inState := 'End1'
+let $toState := 'End1'
+let $level := 'tacticalInsurance'
+
+let $n1 :=
+    <states>
+        <state id="Archive_f" factor='3'/>
+        <state id='CollectData' factor='7'/>
+    </states>
+let $inState1 := 'End2'
+let $toState1 := 'Archive'
+let $level1 := 'operationalInsurance'
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
-return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', false(), $n)
+let $stateId := 'Pay'
+
+return analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)
 
 (: ################## Testcalls ################## :)
 
@@ -69,5 +83,5 @@ return analysis:getTotalCycleTime($mba, 'tacticalInsurance', 'End1', false(), $n
 (: return analysis:compareEvents("hello", "hello123.blah") :)
 
 (:let $scxml := analysis:getSCXMLAtLevel($mba, 'tacticalInsurance')
-let $state := $scxml//(sc:state|sc:parallel)[@id='ImplementProduct']
-return analysis:getTransitionProbabilityForTargetState($scxml, $state):)
+let $state := $scxml//(sc:state|sc:parallel)[@id='DevelopProducts']
+return analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true()):)

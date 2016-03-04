@@ -98,15 +98,15 @@
 							<sc:state id="Archive">
 								<sc:transition event="archived" target="Archive_f"/>
 							</sc:state>
-							<sc:state id="Archive_f"/>
+							<sc:final id="Archive_f"/>
 						</sc:state>
 						<sc:state id="PrintComp" initial="Print">
 							<sc:state id="Print">
 								<sc:transition event="printed" target="Print_f"/>
 							</sc:state>
-							<sc:state id="Print_f"/>
+							<sc:final id="Print_f"/>
 						</sc:state>
-						<sc:transition target="Pay" cond="$isInState('Archive_f') and $isInState('Print_f')"/>
+						<sc:transition target="Pay" event="done.state.Store"/>
 					</sc:parallel>
 					<sc:state id="Pay">
 						<sc:transition event="finishedPayment" target="End2"/>
@@ -214,15 +214,15 @@
 								<sc:state id="Archive">
 									<sc:transition event="archived" target="Archive_f"/>
 								</sc:state>
-								<sc:state id="Archive_f"/>
+								<sc:final id="Archive_f"/>
 							</sc:state>
 							<sc:state id="PrintComp" initial="Print">
 								<sc:state id="Print">
 									<sc:transition event="printed" target="Print_f"/>
 								</sc:state>
-								<sc:state id="Print_f"/>
+								<sc:final id="Print_f"/>
 							</sc:state>
-							<sc:transition target="Pay" cond="$isInState('Archive_f') and $isInState('Print_f')"/>
+							<sc:transition target="Pay" event="done.state.Store"/>
 						</sc:parallel>
 						<sc:state id="Pay">
 							<sc:transition event="finishedPayment" target="End2"/>
@@ -286,7 +286,7 @@
 												<xes:date key="time:timestamp" value="2016-01-01T11:00:01.000+02:00"/>
 												<xes:string key="sc:state" value="Store"/>
 												<xes:string key="sc:target" value="Pay"/>
-												<xes:string key="sc:cond" value="$isInState('Archive_f') and $isInState('Print_f')"/>
+												<xes:string key="sc:event" value="done.state.Store"/>
 											</xes:event>
 											<xes:event>
 												<xes:date key="time:timestamp" value="2016-01-01T11:15:00.000+02:00"/>
@@ -314,15 +314,15 @@
 									<sc:state id="Archive">
 										<sc:transition event="archived" target="Archive_f"/>
 									</sc:state>
-									<sc:state id="Archive_f"/>
+									<sc:final id="Archive_f"/>
 								</sc:state>
 								<sc:state id="PrintComp" initial="Print">
 									<sc:state id="Print">
 										<sc:transition event="printed" target="Print_f"/>
 									</sc:state>
-									<sc:state id="Print_f"/>
+									<sc:final id="Print_f"/>
 								</sc:state>
-								<sc:transition target="Pay" cond="$isInState('Archive_f') and $isInState('Print_f')"/>
+								<sc:transition target="Pay" event="done.state.Store"/>
 							</sc:parallel>
 							<sc:state id="Pay">
 								<sc:transition event="finishedPayment" target="End2"/>
@@ -430,15 +430,15 @@
 								<sc:state id="Archive">
 									<sc:transition event="archived" target="Archive_f"/>
 								</sc:state>
-								<sc:state id="Archive_f"/>
+								<sc:final id="Archive_f"/>
 							</sc:state>
 							<sc:state id="PrintComp" initial="Print">
 								<sc:state id="Print">
 									<sc:transition event="printed" target="Print_f"/>
 								</sc:state>
-								<sc:state id="Print_f"/>
+								<sc:final id="Print_f"/>
 							</sc:state>
-							<sc:transition target="Pay" cond="$isInState('Archive_f') and $isInState('Print_f')"/>
+							<sc:transition target="Pay" event="done.state.Store"/>
 						</sc:parallel>
 						<sc:state id="Pay">
 							<sc:transition event="finishedPayment" target="End2"/>
@@ -495,7 +495,7 @@
 												<xes:date key="time:timestamp" value="2016-01-01T11:00:01.000+02:00"/>
 												<xes:string key="sc:state" value="Store"/>
 												<xes:string key="sc:target" value="Pay"/>
-												<xes:string key="sc:cond" value="$isInState('Archive_f') and $isInState('Print_f')"/>
+												<xes:string key="sc:event" value="done.state.Store"/>
 											</xes:event>
 											<xes:event>
 												<xes:date key="time:timestamp" value="2016-01-01T11:15:00.000+02:00"/>
@@ -523,15 +523,15 @@
 									<sc:state id="Archive">
 										<sc:transition event="archived" target="Archive_f"/>
 									</sc:state>
-									<sc:state id="Archive_f"/>
+									<sc:final id="Archive_f"/>
 								</sc:state>
 								<sc:state id="PrintComp" initial="Print">
 									<sc:state id="Print">
 										<sc:transition event="printed" target="Print_f"/>
 									</sc:state>
-									<sc:state id="Print_f"/>
+									<sc:final id="Print_f"/>
 								</sc:state>
-								<sc:transition target="Pay" cond="$isInState('Archive_f') and $isInState('Print_f')"/>
+								<sc:transition target="Pay" event="done.state.Store"/>
 							</sc:parallel>
 							<sc:state id="Pay">
 								<sc:transition event="finishedPayment" target="End2"/>
@@ -632,15 +632,15 @@
 								<sc:state id="Archive">
 									<sc:transition event="archived" target="Archive_f"/>
 								</sc:state>
-								<sc:state id="Archive_f"/>
+								<sc:final id="Archive_f"/>
 							</sc:state>
 							<sc:state id="PrintComp" initial="Print">
 								<sc:state id="Print">
 									<sc:transition event="printed" target="Print_f"/>
 								</sc:state>
-								<sc:state id="Print_f"/>
+								<sc:final id="Print_f"/>
 							</sc:state>
-							<sc:transition target="Pay" cond="$isInState('Archive_f') and $isInState('Print_f')"/>
+							<sc:transition target="Pay" event="done.state.Store"/>
 						</sc:parallel>
 						<sc:state id="Pay">
 							<sc:transition event="finishedPayment" target="End2"/>

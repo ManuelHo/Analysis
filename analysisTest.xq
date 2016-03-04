@@ -15,6 +15,7 @@ let $mbaTactCar := $testData//mba:mba[@name="MyCarInsuranceCompany"]
 let $mbaTactHouse := $testData//mba:mba[@name="MyHouseholdInsuranceCompany"]
 
 let $mbaOptCarClerk := $testData//mba:mba[@name="MyCarInsuranceClerk"]
+let $mbaOptHouseClerk := $testData//mba:mba[@name="MyHouseholdInsuranceClerk"]
 
 (: checks if the creation time of a mba is between 5:30 and 8:00 :)
 (:let $timeFunc := function($mba as element()
@@ -58,31 +59,71 @@ let $level1 := 'operationalInsurance'
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
-return analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)
+let $stateList := <stateList>{analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)}</stateList>
+
+return functx:distinct-nodes($stateList/state)
 
 (: ################## Testcalls ################## :)
 
-(:return sc:computeEntrySet($mbaOptCarClerk//sc:transition[@event="finishedCollecting"]):)
+(:
+return sc:computeEntrySet($mbaOptCarClerk//sc:transition[@event="finishedCollecting"])
+:)
 
-(:return analysis:getAverageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts"):) (:15M:)
+(:
+return analysis:getAverageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts", ())
+:)
 
-(:return analysis:getStateLog($mbaOptCarClerk):)
+(:
+return analysis:getStateLog($mbaOptCarClerk)
+:)
 
-(:return analysis:getCycleTimeOfInstance($mbaTactCar, ()):) (:40M:)
+(:
+return analysis:getCycleTimeOfInstance($mbaTactCar, 'End1')
+:)  (:25M:)
 
-(:return analysis:getTotalActualCycleTime($mba, "tacticalInsurance", "End1"):)(:35M:)
+(:
+return analysis:getTotalActualCycleTime($mba, "tacticalInsurance", "End1")
+:)  (:35M:)
 
-(:return analysis:getTotalCycleTimeInStates($mbaTactCar, "tacticalInsurance", ("ChooseProducts", "CheckFeasibility")):) (:15M:)
+(:
+return analysis:getTotalCycleTimeInStates($mbaTactCar, "tacticalInsurance", ("ChooseProducts", "CheckFeasibility"))
+:)    (:15M:)
 
-(:return analysis:getCreationTime($mba):)
+(:
+return analysis:getCreationTime($mba)
+:)
 
-(:return analysis:getTransitionProbability($transition):)
+(:
+let $transition := $mbaOptCarClerk//sc:transition[@event='done.state.Store']
+return analysis:getTransitionProbability($transition, ())
+:)  (:1:)
 
-(: return analysis:compareEvents("hello", "hello123.blah") :)
 
-(:let $scxml := analysis:getSCXMLAtLevel($mba, 'operationalInsurance')
-let $state := $scxml//(sc:state|sc:parallel)[@id='Archive']
-return analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true()):)
+(:
+return analysis:compareEvents("hello", "hello123.blah")
+:)
 
-(:return analysis:getTransitionsToState($scxml, $state, true(), true()):)
+(:
+let $scxml := analysis:getSCXMLAtLevel($mba, 'operationalInsurance')
+let $state := $scxml//(sc:state|sc:parallel)[@id='Print']
+return analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true())
+:)  (:0.5:)
 
+(:
+let $scxml := analysis:getSCXMLAtLevel($mba, 'tacticalInsurance')
+let $state := $scxml//sc:state[@id='DevelopProducts']
+return analysis:getTransitionsToState($scxml, $state, true(), true())
+:)
+
+
+(:
+let $n :=
+<states>
+    <state id="CheckFeasibility" factor='3'/>
+    <state id='ChooseProducts' factor='7'/>
+</states>
+let $inState := 'End1'
+let $includeArchiveStates := false()
+let $level := 'tacticalInsurance'
+return analysis:getTotalCycleTime($mba, $level, $inState, $includeArchiveStates, $n)
+:)

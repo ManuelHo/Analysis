@@ -59,9 +59,26 @@ let $level1 := 'operationalInsurance'
 
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
-let $stateList := <stateList>{analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)}</stateList>
 
-return functx:distinct-nodes($stateList/state)
+let $stateList := analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)
+
+(:
+let $stateList := analysis:getTotalCycleTime2($mba, $level, $inState, $toState, $n)
+:)
+
+return $stateList
+
+(:let $state1 := $mbaOptHouseClerk//sc:state[@id='Archive']
+
+return element {'state'} {
+    $state1/@id,
+    if ($state1/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id = $n1/state/@id) then
+        $n1/state[@id = $state1/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id]/@factor
+    else
+        $n1/state[@id = $state1/@id]/@factor
+}:)
+
+
 
 (: ################## Testcalls ################## :)
 
@@ -110,8 +127,8 @@ return analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(
 :)  (:0.5:)
 
 (:
-let $scxml := analysis:getSCXMLAtLevel($mba, 'tacticalInsurance')
-let $state := $scxml//sc:state[@id='DevelopProducts']
+let $scxml := analysis:getSCXMLAtLevel($mba, 'operationalInsurance')
+let $state := $scxml//sc:state[@id='Archive']
 return analysis:getTransitionsToState($scxml, $state, true(), true())
 :)
 

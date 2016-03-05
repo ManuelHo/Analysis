@@ -91,7 +91,7 @@
 					  <sc:transition event="getTotalCosts"/>
 					  <sc:transition event="finishedCollecting" target="Store"/>
 					  <sc:transition event="skip1" target="Archive_f"/>
-					  <sc:transition event="skip2" target="Print_f"/>
+					  <sc:transition event="skip2" target="Print"/>
 					</sc:state>
 					<sc:parallel id="Store">
 						<sc:state id="ArchiveComp" initial="Archive">
@@ -207,7 +207,7 @@
 						  <sc:transition event="getTotalCosts"/>
 						  <sc:transition event="finishedCollecting" target="Store"/>
 						  <sc:transition event="skip1" target="Archive_f"/>
-						  <sc:transition event="skip2" target="Print_f"/>
+						  <sc:transition event="skip2" target="Print"/>
 						</sc:state>
 						<sc:parallel id="Store">
 							<sc:state id="ArchiveComp" initial="Archive">
@@ -307,7 +307,7 @@
 							  <sc:transition event="getTotalCosts"/>
 							  <sc:transition event="finishedCollecting" target="Store"/>
 							  <sc:transition event="skip1" target="Archive_f"/>
-							  <sc:transition event="skip2" target="Print_f"/>
+							  <sc:transition event="skip2" target="Print"/>
 							</sc:state>
 							<sc:parallel id="Store">
 								<sc:state id="ArchiveComp" initial="Archive">
@@ -423,7 +423,7 @@
 						  <sc:transition event="getTotalCosts"/>
 						  <sc:transition event="finishedCollecting" target="Store"/>
 						  <sc:transition event="skip1" target="Archive_f"/>
-						  <sc:transition event="skip2" target="Print_f"/>
+						  <sc:transition event="skip2" target="Print"/>
 						</sc:state>
 						<sc:parallel id="Store">
 							<sc:state id="ArchiveComp" initial="Archive">
@@ -516,7 +516,7 @@
 							  <sc:transition event="getTotalCosts"/>
 							  <sc:transition event="finishedCollecting" target="Store"/>
 							  <sc:transition event="skip1" target="Archive_f"/>
-							  <sc:transition event="skip2" target="Print_f"/>
+							  <sc:transition event="skip2" target="Print"/>
 							</sc:state>
 							<sc:parallel id="Store">
 								<sc:state id="ArchiveComp" initial="Archive">
@@ -625,7 +625,7 @@
 						  <sc:transition event="getTotalCosts"/>
 						  <sc:transition event="finishedCollecting" target="Store"/>
 						  <sc:transition event="skip1" target="Archive_f"/>
-						  <sc:transition event="skip2" target="Print_f"/>
+						  <sc:transition event="skip2" target="Print"/>
 						</sc:state>
 						<sc:parallel id="Store">
 							<sc:state id="ArchiveComp" initial="Archive">

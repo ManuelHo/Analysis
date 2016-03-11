@@ -54,6 +54,7 @@ declare function analysis:getTotalCycleTime($mba as element(),
 };
 
 (: called for each state :)
+(: ToDo: introduce MAX for parallel paths :)
 declare function analysis:getTotalCycleTimeRecursive($mba as element(),
         $level as xs:string,
         $inState as xs:string,
@@ -127,8 +128,7 @@ declare function analysis:getStateList($mba as element(),
                 (
                     (:
                         ToDo: What if a substate is changed?
-                        Parallel: get all final states and getStateList for each of them. Is this correct?
-                        else: is it even possible? Abstract Superstate Rule?
+                        Parallel: get all final states and getStateList for each of them, i.e. follow the paths. Is this correct?
                     :)
                     (
                         if ($state/(descendant::sc:state|descendant::sc:parallel|descendant::sc:final)/@id = $changedStates/state/@id) then
@@ -178,6 +178,7 @@ declare function analysis:getTransitionsToState($scxml as element(),
         (fn:compare(fn:name($state),'sc:initial')=0) and
         (fn:compare(fn:name($state/..),'sc:scxml')=0)
     ) then
+
     (: initial state of scxml :)
         ()
     else if ((fn:compare(fn:name($state),'sc:initial')=0)) then
@@ -331,27 +332,32 @@ declare function analysis:compareTransitions($origTransition as element(),
 (:
     check if $origTransition is the 'same' as $newTransition
     rules:
-        1. $newTransition may have a more specialized source state
-        2. $newTransition may have a more specialized target state
-        3. condition may be added to $newTransition (if $origTransition had no cond)
+        1. $newTransition may have a more specialized source state.
+        2. $newTransition may have a more specialized target state.
+            - If both have no target, then target check is ok
+            - if source has no target, newTransition may have a target which is stateOrSubstate of source
+        3. condition may be added to $newTransition (if $origTransition had no cond). If no condition, every cond can be introduced
         4. conditions in $newTransition may be specialized, by adding terms with 'AND'
-        5. dot notation of events
+        5. dot notation of events. If no event, every event can be introduced
 :)
+
+    (: ToDo: transition is also the same if the origTransition has no target and the newTransition one has a target if the target is a stateOrSubstate of the source! :)
     let $origSource := fn:string(sc:getSourceState($origTransition)/@id)
     let $origTarget := fn:string($origTransition/@target)
     let $origEvent := fn:string($origTransition/@event)
 
-    let $scxml := $origTransition/ancestor::sc:scxml[1]
+    let $scxml := $newTransition/ancestor::sc:scxml[1]
     let $origSourceAndSubstates := analysis:getStateAndSubstates($scxml, $origSource)
     let $origTargetAndSubstates := analysis:getStateAndSubstates($scxml, $origTarget)
 
     return
         if (
-        (: 1. :)(not($origTransition/../@id) or functx:is-value-in-sequence(fn:string(sc:getSourceState($newTransition)/@id), $origSourceAndSubstates)) and
-                (: 2. :)(not($origTransition/@target) or functx:is-value-in-sequence(fn:string($newTransition/@target), $origTargetAndSubstates)) and
-                (: 3&4:)(not($origTransition/@cond) or analysis:compareConditions($origTransition/@cond, $newTransition/@cond)) and
-                (: 5. :)(not($origEvent) or analysis:compareEvents($origEvent, fn:string($newTransition/@event)))
-
+            (: 1. :)(not(sc:getSourceState($origTransition)/@id or sc:getSourceState($newTransition)/@id) or functx:is-value-in-sequence(fn:string(sc:getSourceState($newTransition)/@id), $origSourceAndSubstates)) and
+            (: 2. :)(not($origTransition/@target or $newTransition/@target)
+                    or functx:is-value-in-sequence(fn:string($newTransition/@target), $origTargetAndSubstates)
+                    or (not($origTransition/@target) and functx:is-value-in-sequence($newTransition/@target, $origSourceAndSubstates))) and
+            (: 3&4:)(not($origTransition/@cond) or analysis:compareConditions($origTransition/@cond, $newTransition/@cond)) and
+            (: 5. :)(not($origEvent) or analysis:compareEvents($origEvent, fn:string($newTransition/@event)))
         ) then
             true()
         else

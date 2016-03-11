@@ -1,0 +1,723 @@
+<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="Rental" hierarchy="simple">
+	<topLevel name="business">
+		<elements>
+			<sc:scxml name="Business">
+				<sc:datamodel>
+				  <sc:data id="description">Test MBA for cancel early cancel late</sc:data>
+				  <sc:data id="_event"/>
+				  <sc:data id="_x">
+					<db xmlns="">myMBAse</db>
+					<collection xmlns="">CancelEarlyLate</collection>
+					<mba xmlns="">Rental</mba>
+					<currentStatus xmlns="">
+					  <state ref="Working"/>
+					</currentStatus>
+					<externalEventQueue xmlns=""/>
+					<xes:log xmlns:xes="http://www.xes-standard.org/">
+						<xes:trace>
+							<xes:event>
+								<xes:date key="time:timestamp" value="2016-01-01T06:00:00.000+02:00"/>
+								<xes:string key="sc:initial" value="Business"/>
+								<xes:string key="sc:target" value="Working"/>
+							</xes:event>
+							<xes:event>
+								<xes:date key="time:timestamp" value="2016-01-01T07:00:00.500+02:00"/>
+								<xes:string key="sc:state" value="Working"/>
+								<xes:string key="concept:name" value="handleIncident"/>
+								<xes:string key="sc:event" value="handleIncident"/>
+							</xes:event>
+							<xes:event>
+								<xes:date key="time:timestamp" value="2016-01-01T08:00:00.500+02:00"/>
+								<xes:string key="sc:state" value="Working"/>
+								<xes:string key="concept:name" value="handleIncident"/>
+								<xes:string key="sc:event" value="handleIncident"/>
+							</xes:event>
+						</xes:trace>
+					</xes:log>
+				  </sc:data>
+				</sc:datamodel>
+				<sc:initial>
+				  <sc:transition target="Working"/>
+				</sc:initial>
+				<sc:state id="Working">
+				  <sc:transition event="handleIncident"/>
+				  <sc:transition event="closeCompany" target="Closed"/>
+				</sc:state>
+				<sc:state id="Closed" mba:isArchiveState="true"/>
+			</sc:scxml>
+		</elements>
+		<childLevel name="renterType">
+			<elements>
+				<sc:scxml name="RenterType">
+					<sc:datamodel>
+					  <sc:data id="_event"/>
+					  <sc:data id="_x">
+					  </sc:data>
+					</sc:datamodel>
+					<sc:initial>
+					  <sc:transition target="InDevelopment"/>
+					</sc:initial>
+					<sc:state id="InDevelopment">
+					  <sc:transition event="setMaximumRate"/>
+					  <sc:transition event="launch" target="OnOffer"/>
+					</sc:state>
+					<sc:state id="OnOffer">
+						<sc:transition event="openRental"/>
+						<sc:transition event="cancel" target="Cancelled"/>
+					</sc:state>
+					<sc:state id="Cancelled">
+						<sc:transition event="discontinue" target="Discontinued"/>
+					</sc:state>
+					<sc:state id="Discontinued" mba:isArchiveState="true"/>
+				</sc:scxml>
+			</elements>
+			<childLevel name="rental">
+				<elements>
+					<sc:scxml name="Rental">
+						<sc:datamodel>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="Opening"/>
+						</sc:initial>
+						<sc:state id="Opening">
+							<sc:transition event="setRate"/>
+							<sc:transition event="assignCar"/>
+							<sc:transition event="pickUp" target="Open"/>
+							<sc:transition event="cancel" target="Closed"/>
+						</sc:state>
+						<sc:state id="Open">
+							<sc:transition event="return" target="Closed"/>
+						</sc:state>
+						<sc:state id="Closed" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+				<childLevel/>
+			</childLevel>
+		</childLevel>
+	</topLevel>
+	<concretizations>
+		<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="Private1" hierarchy="simple">
+			<topLevel name="renterType">
+				<elements>
+					<sc:scxml name="RenterType">
+						<sc:datamodel>
+							<sc:data id="description">Test MBA for cancel early cancel late</sc:data>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+								<db xmlns="">myMBAse</db>
+								<collection xmlns="">CancelEarlyLate</collection>
+								<mba xmlns="">Private1</mba>
+								<currentStatus xmlns="">
+									<state ref="Discontinued"/>
+								</currentStatus>
+								<externalEventQueue xmlns=""/>
+								<xes:log xmlns:xes="http://www.xes-standard.org/">
+									<xes:trace>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T06:00:00.000+02:00"/>
+											<xes:string key="sc:initial" value="RenterType"/>
+											<xes:string key="sc:target" value="InDevelopment"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T07:00:00.500+02:00"/>
+											<xes:string key="sc:state" value="InDevelopment"/>
+											<xes:string key="concept:name" value="launch"/>
+											<xes:string key="sc:event" value="launch"/>
+											<xes:string key="sc:target" value="Active"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T07:30:00.500+02:00"/>
+											<xes:string key="sc:state" value="Active"/>
+											<xes:string key="concept:name" value="phaseOut"/>
+											<xes:string key="sc:event" value="phaseOut"/>
+											<xes:string key="sc:target" value="PhasingOut"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T08:30:00.500+02:00"/>
+											<xes:string key="sc:state" value="PhasingOut"/>
+											<xes:string key="concept:name" value="cancel"/>
+											<xes:string key="sc:event" value="cancel"/>
+											<xes:string key="sc:target" value="Cancelled"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T09:00:00.500+02:00"/>
+											<xes:string key="sc:state" value="Cancelled"/>
+											<xes:string key="concept:name" value="discontinue"/>
+											<xes:string key="sc:event" value="discontinue"/>
+											<xes:string key="sc:target" value="Discontinued"/>
+										</xes:event>
+									</xes:trace>
+								</xes:log>
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="InDevelopment"/>
+						</sc:initial>
+						<sc:state id="InDevelopment">
+							<sc:transition event="setMaximumRate"/>
+							<sc:transition event="launch" target="Active"/>
+						</sc:state>
+						<sc:state id="OnOffer">
+							<sc:state id="Active">
+								<sc:transition event="openRental"/>
+								<sc:transition event="phaseOut" target="PhasingOut"/>
+							</sc:state>
+							<sc:state id="PhasingOut">
+								<sc:transition event="cancel" target="Cancelled"/>
+							</sc:state>
+						</sc:state>
+						<sc:state id="Cancelled">
+							<sc:transition event="discontinue" target="Discontinued"/>
+						</sc:state>
+						<sc:state id="Discontinued" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+				<childLevel name="rental">
+					<elements>
+						<sc:scxml name="Rental">
+							<sc:datamodel>
+								<sc:data id="_event"/>
+								<sc:data id="_x">
+								</sc:data>
+							</sc:datamodel>
+							<sc:initial>
+								<sc:transition target="RateFixing"/>
+							</sc:initial>
+							<sc:state id="Opening">
+								<sc:state id="RateFixing">
+									<sc:transition event="cancel.early" target="Cancelled"/>
+									<sc:transition event="setRate" target="CarChoosing"/>
+								</sc:state>
+								<sc:state id="CarChoosing">
+									<sc:transition event="cancel.early" target="Cancelled"/>
+									<sc:transition event="assignCar" target="Ready"/>
+								</sc:state>
+								<sc:state id="Ready">
+									<sc:transition event="pickUp" target="Open"/>
+									<sc:transition event="cancel.late" target="Cancelled"/>
+								</sc:state>
+								<!--<sc:transition event="pickUp" target="Open"/>
+								<sc:transition event="cancel" target="Closed"/>-->
+							</sc:state>
+							<sc:state id="Open">
+								<sc:transition event="return" target="Returned"/>
+							</sc:state>
+							<sc:state id="Closed" mba:isArchiveState="true">
+								<sc:state id="Returned">
+									<sc:transition event="settle" target="Settled"/>
+								</sc:state>
+								<sc:state id="Settled">
+									<sc:transition event="archive" target="Archived"/>
+								</sc:state>
+								<sc:state id="Cancelled">
+									<sc:transition event="archive" target="Archived"/>
+								</sc:state>
+								<sc:state id="Archived"/>
+							</sc:state>
+						</sc:scxml>
+					</elements>
+					<childLevel/>
+				</childLevel>
+			</topLevel>
+			<concretizations>
+				<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="R1" hierarchy="simple">
+					<topLevel name="rental">
+						<elements>
+							<sc:scxml name="Rental">
+								<sc:datamodel>
+									<sc:data id="_event"/>
+									<sc:data id="_x">
+										<db xmlns="">myMBAse</db>
+										<collection xmlns="">CancelEarlyLate</collection>
+										<mba xmlns="">R1</mba>
+										<currentStatus xmlns="">
+											<state ref="Archived"/>
+										</currentStatus>
+										<externalEventQueue xmlns=""/>
+										<xes:log xmlns:xes="http://www.xes-standard.org/">
+											<xes:trace>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T06:00:00.000+02:00"/>
+													<xes:string key="sc:initial" value="Rental"/>
+													<xes:string key="sc:target" value="RateFixing"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:00:00.500+02:00"/>
+													<xes:string key="sc:state" value="RateFixing"/>
+													<xes:string key="concept:name" value="cancel.early"/>
+													<xes:string key="sc:event" value="cancel.early"/>
+													<xes:string key="sc:target" value="Cancelled"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:30:00.500+02:00"/>
+													<xes:string key="sc:state" value="Cancelled"/>
+													<xes:string key="concept:name" value="archive"/>
+													<xes:string key="sc:event" value="archive"/>
+													<xes:string key="sc:target" value="Archived"/>
+												</xes:event>
+											</xes:trace>
+										</xes:log>
+									</sc:data>
+								</sc:datamodel>
+								<sc:initial>
+									<sc:transition target="RateFixing"/>
+								</sc:initial>
+								<sc:state id="Opening">
+									<sc:state id="RateFixing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="setRate" target="CarChoosing"/>
+									</sc:state>
+									<sc:state id="CarChoosing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="assignCar" target="Ready"/>
+									</sc:state>
+									<sc:state id="Ready">
+										<sc:transition event="pickUp" target="Open"/>
+										<sc:transition event="cancel.late" target="Cancelled"/>
+									</sc:state>
+									<!--<sc:transition event="pickUp" target="Open"/>
+									<sc:transition event="cancel" target="Closed"/>-->
+								</sc:state>
+								<sc:state id="Open">
+									<sc:transition event="return" target="Returned"/>
+								</sc:state>
+								<sc:state id="Closed" mba:isArchiveState="true">
+									<sc:state id="Returned">
+										<sc:transition event="settle" target="Settled"/>
+									</sc:state>
+									<sc:state id="Settled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Cancelled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Archived"/>
+								</sc:state>
+							</sc:scxml>
+						</elements>
+						<childLevel/>
+					</topLevel>
+					<concretizations/>
+				</mba>
+				<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="R2" hierarchy="simple">
+					<topLevel name="rental">
+						<elements>
+							<sc:scxml name="Rental">
+								<sc:datamodel>
+									<sc:data id="_event"/>
+									<sc:data id="_x">
+										<db xmlns="">myMBAse</db>
+										<collection xmlns="">CancelEarlyLate</collection>
+										<mba xmlns="">R2</mba>
+										<currentStatus xmlns="">
+											<state ref="Archived"/>
+										</currentStatus>
+										<externalEventQueue xmlns=""/>
+										<xes:log xmlns:xes="http://www.xes-standard.org/">
+											<xes:trace>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T06:00:00.000+02:00"/>
+													<xes:string key="sc:initial" value="Rental"/>
+													<xes:string key="sc:target" value="RateFixing"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:00:00.500+02:00"/>
+													<xes:string key="sc:state" value="RateFixing"/>
+													<xes:string key="concept:name" value="setRate"/>
+													<xes:string key="sc:event" value="setRate"/>
+													<xes:string key="sc:target" value="CarChoosing"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:15:00.500+02:00"/>
+													<xes:string key="sc:state" value="CarChoosing"/>
+													<xes:string key="concept:name" value="cancel.early"/>
+													<xes:string key="sc:event" value="cancel.early"/>
+													<xes:string key="sc:target" value="Cancelled"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:30:00.500+02:00"/>
+													<xes:string key="sc:state" value="Cancelled"/>
+													<xes:string key="concept:name" value="archive"/>
+													<xes:string key="sc:event" value="archive"/>
+													<xes:string key="sc:target" value="Archived"/>
+												</xes:event>
+											</xes:trace>
+										</xes:log>
+									</sc:data>
+								</sc:datamodel>
+								<sc:initial>
+									<sc:transition target="RateFixing"/>
+								</sc:initial>
+								<sc:state id="Opening">
+									<sc:state id="RateFixing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="setRate" target="CarChoosing"/>
+									</sc:state>
+									<sc:state id="CarChoosing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="assignCar" target="Ready"/>
+									</sc:state>
+									<sc:state id="Ready">
+										<sc:transition event="pickUp" target="Open"/>
+										<sc:transition event="cancel.late" target="Cancelled"/>
+									</sc:state>
+									<!--<sc:transition event="pickUp" target="Open"/>
+									<sc:transition event="cancel" target="Closed"/>-->
+								</sc:state>
+								<sc:state id="Open">
+									<sc:transition event="return" target="Returned"/>
+								</sc:state>
+								<sc:state id="Closed" mba:isArchiveState="true">
+									<sc:state id="Returned">
+										<sc:transition event="settle" target="Settled"/>
+									</sc:state>
+									<sc:state id="Settled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Cancelled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Archived"/>
+								</sc:state>
+							</sc:scxml>
+						</elements>
+						<childLevel/>
+					</topLevel>
+					<concretizations/>
+				</mba>
+				<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="R3" hierarchy="simple">
+					<topLevel name="rental">
+						<elements>
+							<sc:scxml name="Rental">
+								<sc:datamodel>
+									<sc:data id="_event"/>
+									<sc:data id="_x">
+										<db xmlns="">myMBAse</db>
+										<collection xmlns="">CancelEarlyLate</collection>
+										<mba xmlns="">R3</mba>
+										<currentStatus xmlns="">
+											<state ref="Archived"/>
+										</currentStatus>
+										<externalEventQueue xmlns=""/>
+										<xes:log xmlns:xes="http://www.xes-standard.org/">
+											<xes:trace>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T06:00:00.000+02:00"/>
+													<xes:string key="sc:initial" value="Rental"/>
+													<xes:string key="sc:target" value="RateFixing"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:00:00.500+02:00"/>
+													<xes:string key="sc:state" value="RateFixing"/>
+													<xes:string key="concept:name" value="setRate"/>
+													<xes:string key="sc:event" value="setRate"/>
+													<xes:string key="sc:target" value="CarChoosing"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:05:00.500+02:00"/>
+													<xes:string key="sc:state" value="CarChoosing"/>
+													<xes:string key="concept:name" value="assignCar"/>
+													<xes:string key="sc:event" value="assignCar"/>
+													<xes:string key="sc:target" value="Ready"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T08:15:00.500+02:00"/>
+													<xes:string key="sc:state" value="Ready"/>
+													<xes:string key="concept:name" value="cancel.late"/>
+													<xes:string key="sc:event" value="cancel.late"/>
+													<xes:string key="sc:target" value="Cancelled"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T09:30:00.500+02:00"/>
+													<xes:string key="sc:state" value="Cancelled"/>
+													<xes:string key="concept:name" value="archive"/>
+													<xes:string key="sc:event" value="archive"/>
+													<xes:string key="sc:target" value="Archived"/>
+												</xes:event>
+											</xes:trace>
+										</xes:log>
+									</sc:data>
+								</sc:datamodel>
+								<sc:initial>
+									<sc:transition target="RateFixing"/>
+								</sc:initial>
+								<sc:state id="Opening">
+									<sc:state id="RateFixing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="setRate" target="CarChoosing"/>
+									</sc:state>
+									<sc:state id="CarChoosing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="assignCar" target="Ready"/>
+									</sc:state>
+									<sc:state id="Ready">
+										<sc:transition event="pickUp" target="Open"/>
+										<sc:transition event="cancel.late" target="Cancelled"/>
+									</sc:state>
+									<!--<sc:transition event="pickUp" target="Open"/>
+									<sc:transition event="cancel" target="Closed"/>-->
+								</sc:state>
+								<sc:state id="Open">
+									<sc:transition event="return" target="Returned"/>
+								</sc:state>
+								<sc:state id="Closed" mba:isArchiveState="true">
+									<sc:state id="Returned">
+										<sc:transition event="settle" target="Settled"/>
+									</sc:state>
+									<sc:state id="Settled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Cancelled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Archived"/>
+								</sc:state>
+							</sc:scxml>
+						</elements>
+						<childLevel/>
+					</topLevel>
+					<concretizations/>
+				</mba>
+				<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="R4" hierarchy="simple">
+					<topLevel name="rental">
+						<elements>
+							<sc:scxml name="Rental">
+								<sc:datamodel>
+									<sc:data id="_event"/>
+									<sc:data id="_x">
+										<db xmlns="">myMBAse</db>
+										<collection xmlns="">CancelEarlyLate</collection>
+										<mba xmlns="">R4</mba>
+										<currentStatus xmlns="">
+											<state ref="Archived"/>
+										</currentStatus>
+										<externalEventQueue xmlns=""/>
+										<xes:log xmlns:xes="http://www.xes-standard.org/">
+											<xes:trace>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T06:00:00.000+02:00"/>
+													<xes:string key="sc:initial" value="Rental"/>
+													<xes:string key="sc:target" value="RateFixing"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:00:00.500+02:00"/>
+													<xes:string key="sc:state" value="RateFixing"/>
+													<xes:string key="concept:name" value="setRate"/>
+													<xes:string key="sc:event" value="setRate"/>
+													<xes:string key="sc:target" value="CarChoosing"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T07:05:00.500+02:00"/>
+													<xes:string key="sc:state" value="CarChoosing"/>
+													<xes:string key="concept:name" value="assignCar"/>
+													<xes:string key="sc:event" value="assignCar"/>
+													<xes:string key="sc:target" value="Ready"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T08:15:00.500+02:00"/>
+													<xes:string key="sc:state" value="Ready"/>
+													<xes:string key="concept:name" value="pickUp"/>
+													<xes:string key="sc:event" value="pickUp"/>
+													<xes:string key="sc:target" value="Open"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T09:30:00.500+02:00"/>
+													<xes:string key="sc:state" value="Open"/>
+													<xes:string key="concept:name" value="return"/>
+													<xes:string key="sc:event" value="return"/>
+													<xes:string key="sc:target" value="Returned"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T09:45:00.500+02:00"/>
+													<xes:string key="sc:state" value="Returned"/>
+													<xes:string key="concept:name" value="settle"/>
+													<xes:string key="sc:event" value="settle"/>
+													<xes:string key="sc:target" value="Settled"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T10:00:00.500+02:00"/>
+													<xes:string key="sc:state" value="Settled"/>
+													<xes:string key="concept:name" value="archive"/>
+													<xes:string key="sc:event" value="archive"/>
+													<xes:string key="sc:target" value="Archived"/>
+												</xes:event>
+											</xes:trace>
+										</xes:log>
+									</sc:data>
+								</sc:datamodel>
+								<sc:initial>
+									<sc:transition target="RateFixing"/>
+								</sc:initial>
+								<sc:state id="Opening">
+									<sc:state id="RateFixing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="setRate" target="CarChoosing"/>
+									</sc:state>
+									<sc:state id="CarChoosing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="assignCar" target="Ready"/>
+									</sc:state>
+									<sc:state id="Ready">
+										<sc:transition event="pickUp" target="Open"/>
+										<sc:transition event="cancel.late" target="Cancelled"/>
+									</sc:state>
+									<!--<sc:transition event="pickUp" target="Open"/>
+									<sc:transition event="cancel" target="Closed"/>-->
+								</sc:state>
+								<sc:state id="Open">
+									<sc:transition event="return" target="Returned"/>
+								</sc:state>
+								<sc:state id="Closed" mba:isArchiveState="true">
+									<sc:state id="Returned">
+										<sc:transition event="settle" target="Settled"/>
+									</sc:state>
+									<sc:state id="Settled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Cancelled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Archived"/>
+								</sc:state>
+							</sc:scxml>
+						</elements>
+						<childLevel/>
+					</topLevel>
+					<concretizations/>
+				</mba>
+			</concretizations>
+		</mba>
+		<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:mba="http://www.dke.jku.at/MBA" name="Private2" hierarchy="simple">
+			<topLevel name="renterType">
+				<elements>
+					<sc:scxml name="RenterType">
+						<sc:datamodel>
+							<sc:data id="description">Test MBA for cancel early cancel late</sc:data>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+								<db xmlns="">myMBAse</db>
+								<collection xmlns="">CancelEarlyLate</collection>
+								<mba xmlns="">Private2</mba>
+								<currentStatus xmlns="">
+									<state ref="Discontinued"/>
+								</currentStatus>
+								<externalEventQueue xmlns=""/>
+								<xes:log xmlns:xes="http://www.xes-standard.org/">
+									<xes:trace>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T06:00:00.000+02:00"/>
+											<xes:string key="sc:initial" value="RenterType"/>
+											<xes:string key="sc:target" value="InDevelopment"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T07:15:00.500+02:00"/>
+											<xes:string key="sc:state" value="InDevelopment"/>
+											<xes:string key="concept:name" value="launch"/>
+											<xes:string key="sc:event" value="launch"/>
+											<xes:string key="sc:target" value="Active"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T08:00:00.500+02:00"/>
+											<xes:string key="sc:state" value="Active"/>
+											<xes:string key="concept:name" value="phaseOut"/>
+											<xes:string key="sc:event" value="phaseOut"/>
+											<xes:string key="sc:target" value="PhasingOut"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T08:30:00.500+02:00"/>
+											<xes:string key="sc:state" value="PhasingOut"/>
+											<xes:string key="concept:name" value="cancel"/>
+											<xes:string key="sc:event" value="cancel"/>
+											<xes:string key="sc:target" value="Cancelled"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T10:00:00.500+02:00"/>
+											<xes:string key="sc:state" value="Cancelled"/>
+											<xes:string key="concept:name" value="discontinue"/>
+											<xes:string key="sc:event" value="discontinue"/>
+											<xes:string key="sc:target" value="Discontinued"/>
+										</xes:event>
+									</xes:trace>
+								</xes:log>
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="InDevelopment"/>
+						</sc:initial>
+						<sc:state id="InDevelopment">
+							<sc:transition event="setMaximumRate"/>
+							<sc:transition event="launch" target="Active"/>
+						</sc:state>
+						<sc:state id="OnOffer">
+							<sc:state id="Active">
+								<sc:transition event="openRental"/>
+								<sc:transition event="phaseOut" target="PhasingOut"/>
+							</sc:state>
+							<sc:state id="PhasingOut">
+								<sc:transition event="cancel" target="Cancelled"/>
+							</sc:state>
+						</sc:state>
+						<sc:state id="Cancelled">
+							<sc:transition event="discontinue" target="Discontinued"/>
+						</sc:state>
+						<sc:state id="Discontinued" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+				<childLevel>
+					<childLevel name="rental">
+						<elements>
+							<sc:scxml name="Rental">
+								<sc:datamodel>
+									<sc:data id="_event"/>
+									<sc:data id="_x">
+									</sc:data>
+								</sc:datamodel>
+								<sc:initial>
+									<sc:transition target="RateFixing"/>
+								</sc:initial>
+								<sc:state id="Opening">
+									<sc:state id="RateFixing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="setRate" target="CarChoosing"/>
+									</sc:state>
+									<sc:state id="CarChoosing">
+										<sc:transition event="cancel.early" target="Cancelled"/>
+										<sc:transition event="assignCar" target="Ready"/>
+									</sc:state>
+									<sc:state id="Ready">
+										<sc:transition event="pickUp" target="Open"/>
+										<sc:transition event="cancel.late" target="Cancelled"/>
+									</sc:state>
+									<!--<sc:transition event="pickUp" target="Open"/>
+									<sc:transition event="cancel" target="Closed"/>-->
+								</sc:state>
+								<sc:state id="Open">
+									<sc:transition event="return" target="Returned"/>
+								</sc:state>
+								<sc:state id="Closed" mba:isArchiveState="true">
+									<sc:state id="Returned">
+										<sc:transition event="settle" target="Settled"/>
+									</sc:state>
+									<sc:state id="Settled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Cancelled">
+										<sc:transition event="archive" target="Archived"/>
+									</sc:state>
+									<sc:state id="Archived"/>
+								</sc:state>
+							</sc:scxml>
+						</elements>
+						<childLevel/>
+					</childLevel>
+				</childLevel>
+			</topLevel>
+			<concretizations>
+				
+			</concretizations>
+		</mba>
+	</concretizations>
+</mba>

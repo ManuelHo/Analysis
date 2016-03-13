@@ -76,6 +76,7 @@ declare function analysis:getTotalCycleTimeRecursive($mba as element(),
         (: id of at least one descendant of $state/@id is in $changedStates/state/@id :)
             for $substate in $state/(sc:state|sc:parallel|sc:final)[not(@mba:isArchiveState=$excludeArchiveStates)]
                 return analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $excludeArchiveStates, $changedStates, $substate/@id)
+                (: ToDo: if state is parallel: MAX :)
         else
         (: neither current nor descendant states are changed :)
             element{'state'}{$state/@id,
@@ -249,6 +250,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
         1
     else
         let $transitions := analysis:getTransitionsToState($scxml, $state, $includeSubstates, $checkParallel)
+        (: ToDo: maybe remove 'duplicates'(compareTransitions!),  depending on abstract superstate rule :)
 
         (: ToDo: problem with rework loops! Not possible at the moment :)
         return fn:sum(
@@ -297,7 +299,7 @@ declare function analysis:getTransitionProbability($transition as element(),
 
     return
         if (fn:count($prob[@leftState='true'] > 0)) then
-            fn:count($prob[@tookTransition='true']) div fn:count($prob[@leftState='true'])
+            fn:count($prob[@tookTransition='true' and @leftState='true']) div fn:count($prob[@leftState='true'])
         else
             0
 };

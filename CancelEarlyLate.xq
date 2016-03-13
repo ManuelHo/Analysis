@@ -16,7 +16,7 @@ let $mbaPrivate1 := $testData//mba:mba[@name="Private1"]
 
 let $t := $mba/mba:topLevel/mba:childLevel/mba:childLevel/mba:elements//sc:transition[@event="assignCar"]
 
-let $t1 := $mbaPrivate1//mba:childLevel//sc:transition[@event="cancel.late"]
+let $t1 := $mbaPrivate1//mba:childLevel//sc:transition[@event="assignCar"]
 
 let $stateId := "Open"
 let $scxml := $mbaPrivate1/mba:topLevel/mba:childLevel[@name="rental"]/mba:elements/sc:scxml
@@ -26,11 +26,23 @@ let $state := $scxml//sc:state[@id=$stateId]
 
 let $transitions := analysis:getTransitionsToState($scxml, $state, true(), true())
 
+let $distinct :=
+    fn:fold-left(analysis:getTransitionsToState($scxml,$state, true(), true()),
+        (),
+    function($result, $trans){
+        let $a := ($result, $trans)
+        return $a
+    }
+)
+
+
 return
     (
         analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true())
         ,
         analysis:getTransitionProbability($t1,())
+        ,
+        analysis:getTransitionProbability($t,())
         ,
         for $x in $transitions
             return

@@ -65,9 +65,9 @@ let $stateList := analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState
 (:
 let $stateList := analysis:getTotalCycleTime2($mba, $level, $inState, $toState, $n)
 :)
-
+(:
 return $stateList
-
+:)
 (:let $state1 := $mbaOptHouseClerk//sc:state[@id='Archive']
 
 return element {'state'} {
@@ -126,11 +126,11 @@ let $state := $scxml//(sc:state|sc:parallel)[@id='Print']
 return analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true())
 :)  (:0.5:)
 
-(:
+
 let $scxml := analysis:getSCXMLAtLevel($mba, 'operationalInsurance')
-let $state := $scxml//sc:state[@id='Archive']
+let $state := $scxml//sc:final[@id='Print_f']
 return analysis:getTransitionsToState($scxml, $state, true(), true())
-:)
+
 
 
 (:

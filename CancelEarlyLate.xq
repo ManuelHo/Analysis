@@ -14,20 +14,20 @@ let $testData := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/CancelEarlyLa
 let $mba := $testData/mba:mba
 let $mbaPrivate1 := $testData//mba:mba[@name="Private1"]
 
-let $t := $mba/mba:topLevel/mba:childLevel/mba:childLevel/mba:elements//sc:transition[@event="assignCar"]
+let $tBusiness := $mba/mba:topLevel/mba:childLevel/mba:childLevel/mba:elements//sc:transition[@event="assignCar"]
 
-let $t1 := $mbaPrivate1//mba:childLevel//sc:transition[@event="assignCar"]
+let $tPrivate := $mbaPrivate1//mba:childLevel//sc:transition[@event="assignCar"]
 
 let $stateId := "Open"
-let $scxml := $mbaPrivate1/mba:topLevel/mba:childLevel[@name="rental"]/mba:elements/sc:scxml
-let $scxml1 := $mba/mba:topLevel/mba:childLevel/mba:childLevel[@name="rental"]/mba:elements/sc:scxml
+let $scxmlBusiness := $mbaPrivate1/mba:topLevel/mba:childLevel[@name="rental"]/mba:elements/sc:scxml
+let $scxmlPrivate := $mba/mba:topLevel/mba:childLevel/mba:childLevel[@name="rental"]/mba:elements/sc:scxml
 
-let $state := $scxml//sc:state[@id=$stateId]
+let $state := $scxmlBusiness//sc:state[@id=$stateId]
 
-let $transitions := analysis:getTransitionsToState($scxml, $state, true(), true())
+let $transitions := analysis:getTransitionsToState($scxmlBusiness, $state, true(), true())
 
 let $distinct :=
-    fn:fold-left(analysis:getTransitionsToState($scxml,$state, true(), true()),
+    fn:fold-left(analysis:getTransitionsToState($scxmlBusiness,$state, true(), true()),
         (),
     function($result, $trans){
         let $a := ($result, $trans)
@@ -38,11 +38,11 @@ let $distinct :=
 
 return
     (
-        analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true())
+        concat('Prob. of state ', $stateId, ': ', analysis:getTransitionProbabilityForTargetState($scxmlBusiness, $state, (), true(), true()))
         ,
-        analysis:getTransitionProbability($t1,())
+        concat('Prob. of transition (mba: Business): ', analysis:getTransitionProbability($tBusiness,()))
         ,
-        analysis:getTransitionProbability($t,())
+        concat('Prob. of transition (mba: Private): ', analysis:getTransitionProbability($tPrivate,()))
         ,
         for $x in $transitions
             return

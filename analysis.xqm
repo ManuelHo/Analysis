@@ -103,7 +103,7 @@ declare function analysis:getTotalCycleTime2($mba as element(),
             analysis:getStateList($mba, $level, $inState, $source, $changedStates, $toState)
     )
     return $stateList
-    (: ToDo: what if list contains composite states? --> remove every state that has substates in list, abstract superstate rule :)
+    (: ToDo: what if list contains composite states? --> remove every state that has superstates in list, already included in parents :)
 };
 
 (: flow analysis with $toState :)
@@ -128,8 +128,7 @@ declare function analysis:getStateList($mba as element(),
             return
                 (
                     (:
-                        ToDo: What if a substate is changed?
-                        Parallel: get all final states and getStateList for each of them, i.e. follow the paths. Is this correct?
+                        ToDo: What if a substate is changed? Sum of all substates! For Parallel: take only longest branch(MAX)
                     :)
                     (
                         if ($state/(descendant::sc:state|descendant::sc:parallel|descendant::sc:final)/@id = $changedStates/state/@id) then
@@ -250,7 +249,10 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
         1
     else
         let $transitions := analysis:getTransitionsToState($scxml, $state, $includeSubstates, $checkParallel)
-        (: ToDo: maybe remove 'duplicates'(compareTransitions!),  depending on abstract superstate rule :)
+        (:
+            $transitions may contain duplicates. But this is excluded by assumption:
+            when a transition is refined, the 'original' transition must not exist anymore!
+        :)
 
         (: ToDo: problem with rework loops! Not possible at the moment :)
         return fn:sum(
@@ -343,7 +345,6 @@ declare function analysis:compareTransitions($origTransition as element(),
         5. dot notation of events. If no event, every event can be introduced
 :)
 
-    (: ToDo: transition is also the same if the origTransition has no target and the newTransition one has a target if the target is a stateOrSubstate of the source! :)
     let $origSource := fn:string(sc:getSourceState($origTransition)/@id)
     let $origTarget := fn:string($origTransition/@target)
     let $origEvent := fn:string($origTransition/@event)

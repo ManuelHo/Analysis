@@ -45,51 +45,19 @@ declare function analysis:getTotalCycleTime($mba as element(),
 ) as element()* {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
-    let $stateList :=
+    return
       for $state in $scxml/(sc:state|sc:parallel|sc:final)[not(@mba:isArchiveState=$excludeArchiveStates)] (: 'first level' states except for sc:initial :)
         return
-            analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $excludeArchiveStates, $changedStates, $state/@id)
-
-    return $stateList
+            analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, ())
+            (:analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $excludeArchiveStates, $changedStates, $state/@id):)
 };
 
-(: called for each state :)
-(: ToDo: introduce MAX for parallel paths :)
-declare function analysis:getTotalCycleTimeRecursive($mba as element(),
-        $level as xs:string,
-        $inState as xs:string,
-        $excludeArchiveStates as xs:boolean?,
-        $changedStates as element()*,
-        $stateId as xs:string
-) as element()* {
-    let $scxml := analysis:getSCXMLAtLevel($mba, $level)
-    let $state := $scxml//(sc:state|sc:parallel|sc:final)[@id=$stateId]
-
-    return
-        if ($state/@id = $changedStates/state/@id) then
-        (: current state is changed :)
-            element{'state'}{$state/@id,
-                $changedStates/state[@id=$state/@id]/@factor,
-                attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, ())},
-                attribute probabilityFactor {analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true())}}
-        else if ($state/(descendant::sc:state|descendant::sc:parallel|descendant::sc:final)/@id = $changedStates/state/@id) then
-        (: id of at least one descendant of $state/@id is in $changedStates/state/@id :)
-            for $substate in $state/(sc:state|sc:parallel|sc:final)[not(@mba:isArchiveState=$excludeArchiveStates)]
-                return analysis:getTotalCycleTimeRecursive($mba, $level, $inState, $excludeArchiveStates, $changedStates, $substate/@id)
-                (: ToDo: if state is parallel: MAX :)
-        else
-        (: neither current nor descendant states are changed :)
-            element{'state'}{$state/@id,
-                attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, ())},
-                attribute probabilityFactor {analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true())}}
-};
-
-declare function analysis:getTotalCycleTime2($mba as element(),
+declare function analysis:getTotalCycleTimeToState($mba as element(),
         $level as xs:string,
         $inState as xs:string,
         $toState as xs:string,
         $changedStates as element()*
-) {
+) as xs:duration {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
     let $state := $scxml//*[@id=$toState]
@@ -102,8 +70,17 @@ declare function analysis:getTotalCycleTime2($mba as element(),
         return
             analysis:getStateList($mba, $level, $inState, $source, $changedStates, $toState)
     )
-    return $stateList
-    (: ToDo: what if list contains composite states? --> remove every state that has superstates in list, already included in parents :)
+
+    return (: if list contains composite states, remove all states that have parent states in list :)
+        fn:sum(
+            for $state in $stateList
+            let $parentStates := analysis:getParentStates($scxml, $state/@id)
+            return
+                if (not($parentStates = $stateList/@id)) then (: if no parent is in $stateList, add $state :)
+                    xs:dayTimeDuration($state/@averageCycleTime)
+                else
+                    ()
+        )
 };
 
 (: flow analysis with $toState :)
@@ -117,54 +94,63 @@ declare function analysis:getStateList($mba as element(),
 ) as element()* {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
-    (:let $state := $scxml//*[@id=$stateId]:)
-
     (: this method assures that all transitions are considered, which lead to the given state :)
     let $transitions := analysis:getTransitionsToState($scxml, $state, true(), true())
 
     let $stateList :=
         for $t in $transitions
             let $source := sc:getSourceState($t)
+            let $cycleTime := analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $toState)
             return
                 (
-                    (:
-                        ToDo: What if a substate is changed? Sum of all substates! For Parallel: take only longest branch(MAX)
-                    :)
-                    (
-                        if ($state/(descendant::sc:state|descendant::sc:parallel|descendant::sc:final)/@id = $changedStates/state/@id) then
-                        (: id of at least one descendant of $state/@id is in $changedStates/state/@id :)
-                            if (fn:compare(fn:name($state),'sc:parallel')=0) then
-                                for $substate in $state//(sc:final)
-                                return
-                                    analysis:getStateList($mba, $level, $inState, $substate, $changedStates, $toState)
-                            else
-                                for $substate in $state/(sc:state|sc:parallel|sc:final)
-                                    return
-                                        element{'state'}{
-                                            $state/@id,
-                                            (: ToDo: implement :)
-                                            $changedStates/state[@id=$state/@id]/@factor,
-                                            attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, $toState)},
-                                            attribute probabilityFactor {analysis:getTransitionProbabilityForTargetState($scxml, $state, $toState, true(), true())}
-                                        }
-                        else
-                            element{'state'}{
+                    if (not(empty($cycleTime))) then
+                        element{'state'} {
                                 $state/@id,
-                                ( (: What if a parent state is changed? --> Take factor from parent state :)
-                                    if ($state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id = $changedStates/state/@id) then
-                                        $changedStates/state[@id = $state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id]/@factor
-                                    else
-                                        $changedStates/state[@id=$state/@id]/@factor
-                                ),
-                                attribute averageCycleTime {analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, $toState)},
-                                attribute probabilityFactor {analysis:getTransitionProbabilityForTargetState($scxml, $state, $toState, true(), true())}
+                                attribute averageCycleTime {$cycleTime}
                             }
-                    )
+                    else ()
                     ,
                     analysis:getStateList($mba, $level, $inState, $source, $changedStates, $toState)(: next state :)
                 )
 
     return $stateList
+};
+
+declare function analysis:getCycleTimeForCompositeState($mba as element(),
+        $level as xs:string,
+        $inState as xs:string,
+        $state as element(),
+        $changedStates as element()*,
+        $toState as xs:string?
+) as xs:duration? {
+    let $scxml := analysis:getSCXMLAtLevel($mba, $level)
+
+    return
+        if ($state/(descendant::sc:state|descendant::sc:parallel|descendant::sc:final)/@id = $changedStates/state/@id) then
+            (: at least one descendant is changed :)
+            (: IF parallel, return MAX branch, ELSE return sum of all substates :)
+            let $cycleTimes :=
+                for $substate in $state/(sc:state|sc:parallel|sc:final)
+                    return
+                        analysis:getCycleTimeForCompositeState($mba, $level, $inState, $substate, $changedStates, $toState)
+            return
+                if (fn:compare(fn:name($state/..),'sc:parallel')) then
+                    max($cycleTimes)
+                else
+                    fn:sum($cycleTimes)
+       else
+            analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, $toState) *
+            analysis:getTransitionProbabilityForTargetState($scxml, $state, $toState, true(), true()) *
+            (
+                if ($state/@id = $changedStates/state/@id) then
+                    (: $state is changed: changedFactor :)
+                    number($changedStates/state[@id=$state/@id]/@factor)
+                else if ($state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id = $changedStates/state/@id) then
+                    (: parent is changed :)
+                    number($changedStates/state[@id = $state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id]/@factor)
+                else (: not changed :)
+                    1
+            )
 };
 
 (: gets all transitions which result in entering $state :)
@@ -272,7 +258,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
 (: relative probability :)
 declare function analysis:getTransitionProbability($transition as element(),
     $toState as xs:string?
-) (:as xs:decimal:) {
+) as xs:decimal {
     let $mba := $transition/ancestor::mba:mba[last()]
     let $level := $transition/ancestor::mba:elements[1]/../@name
     let $descendants := analysis:getDescendantsAtLevel($mba, $level, $toState)
@@ -300,7 +286,7 @@ declare function analysis:getTransitionProbability($transition as element(),
                         <log leftState='{analysis:stateIsLeft($transitionEvent, $sourceState/@id)}' tookTransition='{analysis:compareTransitions($transition, $transitionEvent)}'/>
 
     return
-        if (fn:count($prob[@leftState='true'] > 0)) then
+        if (fn:count($prob[@leftState='true']) > 0) then
             fn:count($prob[@tookTransition='true' and @leftState='true']) div fn:count($prob[@leftState='true'])
         else
             0
@@ -374,7 +360,7 @@ declare function analysis:getAverageCycleTime($mba as element(),
         $inState as xs:string,
         $stateId as xs:string,
         $toState as xs:string?
-) as xs:duration {
+) as xs:duration? {
     let $descendants :=
         analysis:getDescendantsAtLevel($mba, $level, $toState)
         [mba:isInState(., $inState)]
@@ -471,6 +457,12 @@ declare function analysis:getStateAndSubstates($scxml as element(),
     $scxml//(sc:state|sc:parallel|sc:final)[@id=$state]/(descendant-or-self::sc:state|descendant-or-self::sc:parallel|descendant-or-self::sc:final)/fn:string(@id)
 };
 
+declare function analysis:getParentStates($scxml as element(),
+    $state as xs:string
+) as xs:string* {
+    $scxml//(sc:state|sc:parallel|sc:final)[@id=$state]/(ancestor::sc:state|ancestor::sc:parallel|ancestor::sc:final)/fn:string(@id)
+};
+
 declare function analysis:compareConditions($origCond as xs:string,
     $newCond as xs:string
 ) {
@@ -538,6 +530,7 @@ declare function analysis:getSCXMLAtLevel($mba as element(),
             ($mba//mba:childLevel[@name=$level])[1]/mba:elements/sc:scxml
 };
 
+(: returns descendants which have been in $toState :)
 declare function analysis:getDescendantsAtLevel($mba as element(),
         $level as xs:string,
         $toState as xs:string?

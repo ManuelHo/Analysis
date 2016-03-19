@@ -41,8 +41,8 @@ let $mbaOptHouseClerk := $testData//mba:mba[@name="MyHouseholdInsuranceClerk"]
 
 let $n :=
 <states>
-    <state id="CheckFeasibility" factor='3'/>
-    <state id='ChooseProducts' factor='7'/>
+    <state id="DevelopProducts" factor='3'/>
+    <state id='ChooseProducts' factor='1'/>
 </states>
 let $inState := 'End1'
 let $toState := 'End1'
@@ -60,14 +60,11 @@ let $level1 := 'operationalInsurance'
 (:$isInState('Archive_f') and $isInState('Print_f'):)
 
 
-let $stateList := analysis:getTotalCycleTime2($mba, $level1, $inState1, $toState1, $n1)
+let $stateList := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $toState1, $n1)
+let $stateList := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $n)
 
-(:
-let $stateList := analysis:getTotalCycleTime2($mba, $level, $inState, $toState, $n)
-:)
-(:
 return $stateList
-:)
+
 (:let $state1 := $mbaOptHouseClerk//sc:state[@id='Archive']
 
 return element {'state'} {
@@ -126,11 +123,11 @@ let $state := $scxml//(sc:state|sc:parallel)[@id='Print']
 return analysis:getTransitionProbabilityForTargetState($scxml, $state, (), true(), true())
 :)  (:0.5:)
 
-
+(:
 let $scxml := analysis:getSCXMLAtLevel($mba, 'operationalInsurance')
 let $state := $scxml//sc:final[@id='Print_f']
 return analysis:getTransitionsToState($scxml, $state, true(), true())
-
+:)
 
 
 (:
@@ -143,4 +140,18 @@ let $inState := 'End1'
 let $includeArchiveStates := false()
 let $level := 'tacticalInsurance'
 return analysis:getTotalCycleTime($mba, $level, $inState, $includeArchiveStates, $n)
+:)
+
+(:
+let $n :=
+    <states>
+        <state id="CheckFeasibility" factor='10'/>
+        <state id='ImplementProduct' factor='1'/>
+    </states>
+let $inState := 'End1'
+let $toState := 'End1'
+let $level := 'tacticalInsurance'
+let $state := analysis:getSCXMLAtLevel($mba, $level)//*[@id='DevelopProducts']
+
+return analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $n, $toState)
 :)

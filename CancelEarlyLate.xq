@@ -18,7 +18,7 @@ let $tBusiness := $mba/mba:topLevel/mba:childLevel/mba:childLevel/mba:elements//
 
 let $tPrivate := $mbaPrivate1//mba:childLevel//sc:transition[@event="assignCar"]
 
-let $stateId := "Open"
+let $stateId := "Settled"
 let $scxmlBusiness := $mbaPrivate1/mba:topLevel/mba:childLevel[@name="rental"]/mba:elements/sc:scxml
 let $scxmlPrivate := $mba/mba:topLevel/mba:childLevel/mba:childLevel[@name="rental"]/mba:elements/sc:scxml
 
@@ -35,8 +35,12 @@ let $distinct :=
     }
 )
 
+return (:analysis:getCycleTimeForCompositeState($mbaPrivate1, 'rental', 'Archived', $state, (), ()):)
+analysis:getTotalCycleTimeToState($mbaPrivate1, 'rental', 'Archived', 'Archived', ())
 
-return
+
+
+(:return
     (
         concat('Prob. of state ', $stateId, ': ', analysis:getTransitionProbabilityForTargetState($scxmlBusiness, $state, (), true(), true()))
         ,
@@ -45,16 +49,10 @@ return
         concat('Prob. of transition (mba: Private): ', analysis:getTransitionProbability($tPrivate,()))
         ,
         for $x in $transitions
-            return
-                element { "t" } {
-                    attribute prob {analysis:getTransitionProbability($x, ())},
-                    $x/../@id,
-                    $x/@event
-                }
-    )
-
-    (:
-
-
-
-    :)
+        return
+            element { "t" } {
+                attribute prob {analysis:getTransitionProbability($x, ())},
+                $x/../@id,
+                $x/@event
+            }
+    ):)

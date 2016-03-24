@@ -36,7 +36,7 @@ declare function ReworkModule:isReworkRec($scxml as element(),
         else if (
             $scxml//*[@id=$transition/@target and @mba:isArchiveState]
         ) then
-            false() (: end found, no rework loop :)
+            false() (: end of process found, no rework loop :)
         else (: follow path ... :)
             let $transitions := $scxml//*[@id=$transition/@target]/sc:transition
             return (: ToDo: what if no transitions are leaving state? :)

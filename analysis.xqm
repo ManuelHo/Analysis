@@ -95,6 +95,7 @@ declare function analysis:getStateList($mba as element(),
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
     (: this method assures that all transitions are considered, which lead to the given state :)
+    (: ToDo: problem with rework loops, not working ATM :)
     let $transitions := analysis:getTransitionsToState($scxml, $state, true(), true())
 
     let $stateList :=
@@ -110,7 +111,7 @@ declare function analysis:getStateList($mba as element(),
                             }
                     else ()
                     ,
-                    analysis:getStateList($mba, $level, $inState, $source, $changedStates, $toState)(: next state :)
+                    analysis:getStateList($mba, $level, $inState, $source, $changedStates, $toState)(: next state, ToDo: only if @reworkStart=false :)
                 )
 
     return $stateList
@@ -240,19 +241,22 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
             when a transition is refined, the 'original' transition must not exist anymore!
         :)
 
-        (: ToDo: problem with rework loops! Not possible at the moment :)
+        (: ToDo: problem with rework loops! Not possible at the moment
+            introduce new param: followRework. By default, this is true.
+            if there is a $transition/@reworkEnd=true, set followRework=false.
+            If followRework=false, ignore all $transitions with @reworkEnd=true.
+            If @reworkStart=true, use formula instead of getTransitionProbability only
+
+            If there is a rework loop, the probability for the affected states is greater 1.
+            Formula: 1/(1-transProb)
+        :)
         return fn:sum(
                 for $transition in $transitions
                 let $source := sc:getSourceState($transition)
                 return
                     (analysis:getTransitionProbability($transition, $toState)*analysis:getTransitionProbabilityForTargetState($scxml, $source, $toState, true(), true())),
                 0
-        )(: + (
-            if (fn:compare(fn:string($state/../@initial), fn:string($state/@id))=0) then
-                analysis:getTransitionProbabilityForTargetState($scxml, $state/.., $toState, false(), true())
-            else
-                0
-        ):)
+        )
 };
 
 (: relative probability :)
@@ -301,18 +305,21 @@ declare function analysis:stateIsLeft($transition as element(),
         2. $transition/source is a substate of $state AND $transition/target is neither $state nor a substate
     else false
 :)
-    let $sourceTransition := fn:string(sc:getSourceState($transition)/@id) (: ToDo: not working for sc:initial! :)
-    let $targetTransition := fn:string($transition/@target)
-    let $scxml := $transition/ancestor::sc:scxml[1]
-    let $stateAndSubstates := analysis:getStateAndSubstates($scxml, $state)
+    if (fn:compare(fn:name(sc:getSourceState($transition)), 'sc:initial')=0) then
+        false()
+    else
+        let $sourceTransition := fn:string(sc:getSourceState($transition)/@id)
+        let $targetTransition := fn:string($transition/@target)
+        let $scxml := $transition/ancestor::sc:scxml[1]
+        let $stateAndSubstates := analysis:getStateAndSubstates($scxml, $state)
 
-    return
-        if ($targetTransition and ($state = $sourceTransition) and (not(functx:is-value-in-sequence($targetTransition, $stateAndSubstates)))) then
-            true() (: 1. :)
-        else if ($targetTransition and (functx:is-value-in-sequence($sourceTransition, $stateAndSubstates)) and (not(functx:is-value-in-sequence($targetTransition, $stateAndSubstates)))) then
-            true() (: 2. :)
-        else
-            false()
+        return
+            if ($targetTransition and ($state = $sourceTransition) and (not(functx:is-value-in-sequence($targetTransition, $stateAndSubstates)))) then
+                true() (: 1. :)
+            else if ($targetTransition and (functx:is-value-in-sequence($sourceTransition, $stateAndSubstates)) and (not(functx:is-value-in-sequence($targetTransition, $stateAndSubstates)))) then
+                true() (: 2. :)
+            else
+                false()
 (: if $state is a substate of $transition/source --> no action, defined in documentation :)
 };
 

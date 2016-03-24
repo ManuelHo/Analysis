@@ -36,5 +36,6 @@ return
     for $t in $scxml//sc:transition
         return
             copy $new := $t modify (
-                insert node attribute rework {rework:isRework($scxml, $t)} into $new
+                insert node attribute reworkStart {rework:isRework($scxml, $t)} into $new,
+                insert node attribute reworkEnd {rework:isRework($scxml, $t)} into $new
             ) return $new

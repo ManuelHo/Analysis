@@ -95,7 +95,7 @@ declare function analysis:getStateList($mba as element(),
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
     (: this method assures that all transitions are considered, which lead to the given state :)
-    (: ToDo: problem with rework loops, not working ATM :)
+    (: ToDo: problem with rework loops, not working at the moment :)
     let $transitions := analysis:getTransitionsToState($scxml, $state, true(), true())
 
     let $stateList :=
@@ -242,10 +242,6 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
         :)
 
         (: ToDo: problem with rework loops! Not possible at the moment
-            introduce new param: followRework. By default, this is true.
-            if there is a $transition/@reworkEnd=true, set followRework=false.
-            If followRework=false, ignore all $transitions with @reworkEnd=true.
-            If @reworkStart=true, use formula instead of getTransitionProbability only
 
             If there is a rework loop, the probability for the affected states is greater 1.
             Formula: 1/(1-transProb)
@@ -254,7 +250,8 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                 for $transition in $transitions
                 let $source := sc:getSourceState($transition)
                 return
-                    (analysis:getTransitionProbability($transition, $toState)*analysis:getTransitionProbabilityForTargetState($scxml, $source, $toState, true(), true())),
+                    (analysis:getTransitionProbability($transition, $toState)*analysis:getTransitionProbabilityForTargetState($scxml, $source, $toState, true(), true()))
+                ,
                 0
         )
 };

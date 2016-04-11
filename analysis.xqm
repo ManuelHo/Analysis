@@ -50,11 +50,7 @@ declare function analysis:getTotalCycleTime($mba as element(),
 ) as xs:duration {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
-    let $states :=
-        if ($excludeArchiveStates = true()) then
-            $scxml/(sc:state | sc:parallel | sc:final)[not(@mba:isArchiveState = $excludeArchiveStates)]
-        else
-            $scxml/(sc:state | sc:parallel | sc:final)
+    let $states := analysis:getMostAbstractStates($scxml, $excludeArchiveStates)
 
     return (: Archive states can only be on the 'first' level. :)
         sum(
@@ -145,11 +141,7 @@ declare function analysis:getProblematicStates($mba as element(),
     let $cycleTimeThreshold := $totalCycleTime * $threshold
 
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
-    let $states :=
-        if ($excludeArchiveStates = true()) then
-            $scxml//(sc:state | sc:parallel | sc:final)[not(@mba:isArchiveState = $excludeArchiveStates)]
-        else
-            $scxml//(sc:state | sc:parallel | sc:final)
+    let $states := analysis:getStates($scxml, $excludeArchiveStates)
 
     return
         for $state in $states
@@ -183,8 +175,9 @@ declare function analysis:identifyCauseOfProblematicState(
     :)
     let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $changedStates, $changedTransitions, $threshold)
 
-    return $problematicStates
+    
 
+    return $problematicStates
 };
 
 declare function analysis:getCycleTimeForCompositeState($mba as element(),
@@ -651,6 +644,27 @@ declare function analysis:getDescendantsAtLevel($mba as element(),
         else
             $descendants
 };
+
+(: returns all states of $scxml, depending on $excludeArchiveStates :)
+declare function analysis:getStates($scxml as element(),
+        $excludeArchiveStates as xs:boolean?
+) as element()* {
+    if ($excludeArchiveStates = true()) then
+        $scxml//(sc:state | sc:parallel | sc:final)[not(@mba:isArchiveState = $excludeArchiveStates)]
+    else
+        $scxml//(sc:state | sc:parallel | sc:final)
+};
+
+(: returns only the most abstract states(=no substates) of $scxml, depending on $excludeArchiveStates :)
+declare function analysis:getMostAbstractStates($scxml as element(),
+        $excludeArchiveStates as xs:boolean?
+) as element()* {
+    if ($excludeArchiveStates = true()) then
+        $scxml/(sc:state | sc:parallel | sc:final)[not(@mba:isArchiveState = $excludeArchiveStates)]
+    else
+        $scxml/(sc:state | sc:parallel | sc:final)
+};
+
 
 declare function analysis:getActualAverageWIP($mba as element(),
         $level as xs:string,

@@ -12,10 +12,7 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
         $toState as xs:string?
 ) as xs:duration {
     let $descendants := (: if the topLevel is $level, analyze $mba :)
-        if ($mba/mba:topLevel[@name=$level]) then
-            $mba
-        else
-            analysis:getDescendantsAtLevel($mba, $level, $toState)
+        analysis:getDescendantsOrMBA($mba, $level, $toState)
 
     let $cycleTimes :=
         for $descendant in $descendants
@@ -153,7 +150,7 @@ declare function analysis:getProblematicStates($mba as element(),
                 ()
 };
 
-declare function analysis:identifyCauseOfProblematicState(
+declare function analysis:getCausesOfProblematicStates(
         $mba as element(),
         $level as xs:string,
         $inState as xs:string,
@@ -175,9 +172,45 @@ declare function analysis:identifyCauseOfProblematicState(
     :)
     let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $changedStates, $changedTransitions, $threshold)
 
-    
+    (:
+        loop descendants or MBA
+        analyze each state log
+        check if @from of problematic state is near( within 10 seconds) @from of substate which is also problematic
+    :)
+    let $descendants := analysis:getDescendantsOrMBA($mba, $level, ())
 
-    return $problematicStates
+    let $c :=
+        for $state in $problematicStates
+        let $substates := $state//(sc:state | sc:parallel | sc:final)
+        let $causes :=
+            (:for $d in $descendants
+            let $stateLog := analysis:getStateLog($d)
+            return 'x':)
+            (: ToDo:
+            check if a substate is causing the delay:
+                Substate also has to be problematic and @from is nearly the same
+                every problematic substate
+        :)
+            (
+                fn:concat(
+                        'Total: ', analysis:getTotalCycleTime($mba, $level, $inState, $excludeArchiveStates, $changedStates, $changedTransitions)
+                ),
+                        (:if ($problematicStates/@id = $substates/@id) then:) (: at least one $substate is problematic :)
+                    fn:concat(
+                            fn:string($state/@id), '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, ()) ,']',
+                            ' -->')
+                ,
+                for $sub in $substates(:[@id = $problematicStates/@id]:)
+                return fn:concat(' ', fn:string($sub/@id), '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $sub, $changedStates, $changedTransitions, ()), ']')
+                    (:else
+                    fn:concat(
+                            fn:string($state/@id),
+                            '(', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, ()), ')'
+                    ):)
+            )
+        return $causes (: ToDo: check if more true than false :)
+
+    return $c
 };
 
 declare function analysis:getCycleTimeForCompositeState($mba as element(),
@@ -187,7 +220,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
         $changedStates as element()*,
         $changedTransitions as element()*,
         $toState as xs:string?
-) as xs:duration? {
+) (:as xs:duration?:) {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
     return
@@ -199,7 +232,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                 return
                     analysis:getCycleTimeForCompositeState($mba, $level, $inState, $substate, $changedStates, $changedTransitions, $toState)
             return
-                if (fn:compare(fn:name($state/..), 'sc:parallel')) then
+                if (fn:compare(fn:name($state), 'sc:parallel')=0) then
                     max($cycleTimes)
                 else
                     fn:sum($cycleTimes)
@@ -348,10 +381,8 @@ declare function analysis:getTransitionProbability($transition as element(),
     let $mba := $transition/ancestor::mba:mba[last()]
     let $level := $transition/ancestor::mba:elements[1]/../@name
     let $descendants := (: if the topLevel is $level, analyze $mba :)
-            if ($mba/mba:topLevel[@name=$level]) then
-                $mba
-            else
-                analysis:getDescendantsAtLevel($mba, $level, $toState)
+        analysis:getDescendantsOrMBA($mba, $level, $toState)
+
     let $sourceState := sc:getSourceState($transition)
 
     (:
@@ -456,7 +487,7 @@ declare function analysis:getAverageCycleTime($mba as element(),
 ) as xs:duration? {
     let $descendants := (: if the topLevel is $level, analyze $mba :)
         (
-            if ($mba/mba:topLevel[@name=$level]) then
+            if ($mba/mba:topLevel[@name = $level]) then
                 $mba
             else
                 analysis:getDescendantsAtLevel($mba, $level, $toState)
@@ -665,6 +696,15 @@ declare function analysis:getMostAbstractStates($scxml as element(),
         $scxml/(sc:state | sc:parallel | sc:final)
 };
 
+declare function analysis:getDescendantsOrMBA($mba as element(),
+        $level as xs:string,
+        $toState as xs:string?
+) as element()* {
+    if ($mba/mba:topLevel[@name = $level]) then
+        $mba
+    else
+        analysis:getDescendantsAtLevel($mba, $level, $toState)
+};
 
 declare function analysis:getActualAverageWIP($mba as element(),
         $level as xs:string,

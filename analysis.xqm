@@ -12,7 +12,7 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
         $toState as xs:string?
 ) as xs:duration {
     let $descendants := (: if the topLevel is $level, analyze $mba :)
-        analysis:getDescendantsOrMBA($mba, $level, $toState)
+        analysis:getDescendantsAtLevelOrMBA($mba, $level, $toState)
 
     let $cycleTimes :=
         for $descendant in $descendants
@@ -40,10 +40,11 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
 
 declare function analysis:getTotalCycleTime($mba as element(),
         $level as xs:string,
-        $inState as xs:string,
+        $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
         $changedStates as element()*,
-        $changedTransitions as element()*
+        $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*
 ) as xs:duration {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
@@ -53,16 +54,17 @@ declare function analysis:getTotalCycleTime($mba as element(),
         sum(
                 for $state in $states (: 'first level' states except for sc:initial :)
                 return
-                    analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, ())
+                    analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, $changedTransitionsFactors, ())
         )
 };
 
 declare function analysis:getTotalCycleTimeToState($mba as element(),
         $level as xs:string,
-        $inState as xs:string,
+        $inState as xs:string?,
         $toState as xs:string,
         $changedStates as element()*,
-        $changedTransitions as element()*
+        $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*
 ) as xs:duration {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
@@ -74,7 +76,7 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
             for $t in $transitions
             let $source := sc:getSourceState($t)
             return
-                analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $toState)
+                analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState)
     )
 
     return (: if list contains composite states, remove all states that have parent states in list :)
@@ -94,10 +96,11 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
 (: may contain duplicates :)
 declare function analysis:getStateList($mba as element(),
         $level as xs:string,
-        $inState as xs:string,
+        $inState as xs:string?,
         $state as element(),
         $changedStates as element()*,
         $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*,
         $toState as xs:string
 ) as element()* {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
@@ -109,7 +112,7 @@ declare function analysis:getStateList($mba as element(),
     let $stateList :=
         for $t in $transitions
         let $source := sc:getSourceState($t)
-        let $cycleTime := analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, $toState)
+        let $cycleTime := analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState)
         return
             (
                 if (not(empty($cycleTime))) then
@@ -119,7 +122,7 @@ declare function analysis:getStateList($mba as element(),
                     }
                 else ()
                 ,
-                analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $toState)(: next state, ToDo: only if @reworkStart=false :)
+                analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState)(: next state, ToDo: only if @reworkStart=false :)
             )
 
     return $stateList
@@ -127,14 +130,13 @@ declare function analysis:getStateList($mba as element(),
 
 declare function analysis:getProblematicStates($mba as element(),
         $level as xs:string,
-        $inState as xs:string,
+        $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
-        $changedStates as element()*,
-        $changedTransitions as element()*,
         $threshold as xs:decimal?
 ) as element()* {
 (: return all states whith average cycle time of more than $threshold times total cycle time :)
-    let $totalCycleTime := analysis:getTotalCycleTime($mba, $level, $inState, $excludeArchiveStates, $changedStates, $changedTransitions)
+    (: DECISION: cycleTime will be calculated for whole process, with the option to exclude archiveStates and only include descendants which are $inState :)
+    let $totalCycleTime := analysis:getTotalCycleTime($mba, $level, $inState, $excludeArchiveStates, (), (), ())
     let $cycleTimeThreshold := $totalCycleTime * $threshold
 
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
@@ -142,7 +144,7 @@ declare function analysis:getProblematicStates($mba as element(),
 
     return
         for $state in $states
-        let $cycleTime := analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, ())
+        let $cycleTime := analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, (), (), (), ())
         return
             if ($cycleTime >= $cycleTimeThreshold) then
                 $state
@@ -150,13 +152,12 @@ declare function analysis:getProblematicStates($mba as element(),
                 ()
 };
 
+(: this function check the topLevel of $mba :)
 declare function analysis:getCausesOfProblematicStates(
         $mba as element(),
         $level as xs:string,
-        $inState as xs:string,
+        $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
-        $changedStates as element()*,
-        $changedTransitions as element()*,
         $threshold as xs:decimal?
 ) {
 (:
@@ -166,61 +167,166 @@ declare function analysis:getCausesOfProblematicStates(
         e.g. check if a problematic state has high cycle time because of previous state
 
         If there is a substate which is also problematic AND ends at the same time as the state, the substate is the bottleneck.
-        If the parent is a parallel state, check if there is a problem in a parallel branch.
         If there is a multilevel synchronization dependency:
             - check if there is a problematic state which causes the bottleneck.
     :)
-    let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $changedStates, $changedTransitions, $threshold)
+    let $threshold :=
+        if (not($threshold)) then
+            0.3
+        else
+            $threshold
 
-    (:
-        loop descendants or MBA
-        analyze each state log
-        check if @from of problematic state is near( within 10 seconds) @from of substate which is also problematic
-    :)
-    let $descendants := analysis:getDescendantsOrMBA($mba, $level, ())
+    let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $threshold)
 
     return
-    (:
-        if $state is problematic, check if there is a problematic substate.
-        if yes --> substate is causing problem.
-    :)
-        (
-            fn:concat(
-                    'Total: ', analysis:getTotalCycleTime($mba, $level, $inState, $excludeArchiveStates, $changedStates, $changedTransitions)
-            )
-            ,
-            for $state in $problematicStates
-            let $substates := $state//(sc:state | sc:parallel | sc:final)
-            return
-                if ($problematicStates/@id = $substates/@id) then (: at least one $substate is problematic :)
-                    (
-                        fn:concat(
-                                fn:string($state/@id),
-                                '[',
-                                analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, ()),
-                                ']'),
-                        for $sub in $substates[@id = $problematicStates/@id]
-                        return fn:concat(' --> ', fn:string($sub/@id), '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $sub, $changedStates, $changedTransitions, ()), ']')
-                    )
-                else
-                    fn:concat(
+        for $state in $problematicStates
+        return analysis:getCausesOfProblematicState($mba, $level, $state, $inState, $excludeArchiveStates, $threshold, $problematicStates, false())
+};
+
+(: checks what is causing $state to be problematic :)
+(: $checkSynchronizedProcess: if true(), function was called from a path of a synchronized process. ProblematicStates in synchronized processes are causing delays the parallel process :)
+declare function analysis:getCausesOfProblematicState($mba as element(),
+        $level as xs:string,
+        $state as element(),
+        $inState as xs:string?,
+        $excludeArchiveStates as xs:boolean?,
+        $threshold as xs:decimal?,
+        $problematicStates as element()*,
+        $checkSynchronizedProcess as xs:boolean
+) {
+        if (analysis:stateIsInitialOfSCXML($state) = true()) then(: initial state of scxml, end recursion :)
+            ()
+        else if (analysis:stateIsInitial($state) = true()) then
+        (: call again for parent :)
+            analysis:getCausesOfProblematicState($mba, $level, $state/.., $inState, $excludeArchiveStates, $threshold, $problematicStates, $checkSynchronizedProcess)
+        else
+            (
+                if ($state/@id=$problematicStates/@id) then
+                    fn:concat( (: if state is problematic, print state + time:)
                             fn:string($state/@id),
-                            '(', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, ()), ')'
+                            '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, (), (), (), ()), ']'
                     )
+                else ()
+                ,
+                let $substates := $state//(sc:state | sc:parallel | sc:final)
+                return
+                    if ($problematicStates/@id = $substates/@id) then (: check substates: if true at least one $substate is problematic :)
+                        for $sub in $substates[@id = $problematicStates/@id] (: print all problematic substates :)
+                        return fn:concat('  --> ', fn:string($sub/@id), '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $sub, (), (), (), ()), ']')
+                    else
+                        ()
+                ,
+                for $t in $state//sc:transition
+                let $subLevel := analysis:parseLevelName($t/@cond)
+                let $subSCXML := analysis:getSCXMLAtLevel($mba, $subLevel)
+                let $synchronizedState := $subSCXML//(sc:state | sc:parallel | sc:final)[@id = analysis:parseStateId($t/@cond)]
+                return
+                (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
+                    if (($t/@cond) and (analysis:parseFunction($t/@cond)="$_everyDescendantAtLevelIsInState")) then
+                        analysis:getCausesOfProblematicStateEveryDescendantAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $subLevel, $subSCXML, $synchronizedState)
+                    else
+                        ()(: ToDo: implement other sync. functions :)
+                ,
+                if ($checkSynchronizedProcess=true()) then
+                    (: follow process until initial/problematicState :)
+                    let $precedingStates := analysis:getTransitionsToState(analysis:getSCXMLAtLevel($mba, $level), $state, true(), true())/..
+                    return
+                        if ($precedingStates/@id = $problematicStates/@id) then(: at least one $precedingState is problematic :)
+                            for $prec in $precedingStates[@id = $problematicStates/@id](: print all preceding problematic states :)
+                            return fn:concat('  --> ', $prec/@id, '[', analysis:getCycleTimeForCompositeState($mba, $level, (), $prec, (), (), (), ()), ']')
+                        else
+                            for $prec in $precedingStates
+                            return analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $problematicStates, true())
+                else
+                    ()
+            )
+};
+
+(: moved logic for function $_everyDescendantAtLevelIsInState :)
+declare function analysis:getCausesOfProblematicStateEveryDescendantAtLevelIsInState($mba as element(),
+        $level as xs:string,
+        $state as element(),
+        $excludeArchiveStates as xs:boolean?,
+        $threshold as xs:decimal?,
+        $subLevel as xs:string,
+        $subSCXML as element(),
+        $synchronizedState as element()
+) {
+    let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
+    let $syncCausingProblem :=   (: list, for each descendant check if there is a problem with this sync :)
+        functx:is-value-in-sequence(
+                true()
+                ,
+                for $descendant in $descendants
+                let $stateLog := analysis:getStateLog($descendant)
+                let $untilProblemState := $stateLog/state[@ref=$state/@id]/@until
+                let $maxUntilPrecedingState := analysis:maxUntilState($descendant, $subLevel, $synchronizedState/@id)
+                return
+                    analysis:timesAreSame($untilProblemState, $maxUntilPrecedingState)
         )
 
-(: ToDo: synchronization hierarchy
-        for $d in $descendants
-            let $stateLog := analysis:getStateLog($d)
-            return 'x':)
+    (: check if @until of problematic state is near( within 5 minutes) MAX(@from) of preceding state at least ONCE :)
+    return
+        if ($syncCausingProblem=true()) then
+            let $syncProblematicStates := analysis:getProblematicStates($mba, $subLevel, (), $excludeArchiveStates, $threshold)
+            (: "$_everyDescendantAtLevelIsInState": $state depends on preceding states of $synchronizedState  :)
+            let $precedingStates := analysis:getTransitionsToState($subSCXML, $synchronizedState, true(), true())/..
+            return
+                if ($precedingStates/@id = $syncProblematicStates/@id) then(: at least one $precedingState is problematic :)
+                    for $prec in $precedingStates[@id = $syncProblematicStates/@id](: print all preceding problematic states :)
+                    return fn:concat('  --> ', $prec/@id, '[', analysis:getCycleTimeForCompositeState($mba, $subLevel, (), $prec, (), (), (), ()), ']')
+                else
+                (: follow process until a problematic state is found or initial :)
+                    for $prec in $precedingStates
+                    return analysis:getCausesOfProblematicState($mba, $subLevel, $prec, (), $excludeArchiveStates, $threshold, $syncProblematicStates, true())
+        else
+            () (: time is totally different, $state is not delayed by $precedingState :)
+};
+
+(: returns max @until from stateLogs of mba/level :)
+declare function analysis:maxUntilState($mba as element(),
+        $level as xs:string,
+        $state as xs:string
+) {
+    let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
+    return
+        max(
+                for $descendant in $descendants
+                let $subStateLog := analysis:getStateLog($descendant)
+                return xs:dateTime($subStateLog/state[@ref=$state]/@from)
+        )
+};
+
+declare function analysis:stateIsInitial($state as element()
+) as xs:boolean {
+    (fn:compare(fn:name($state), 'sc:initial') = 0)
+};
+
+declare function analysis:stateIsInitialOfSCXML($state as element()
+) as xs:boolean {
+    (fn:compare(fn:name($state), 'sc:initial') = 0) and
+            (fn:compare(fn:name($state/..), 'sc:scxml') = 0)
+};
+
+(: true if two times are within 5 minutes :)
+declare function analysis:timesAreSame($time1 as xs:dateTime,
+        $time2 as xs:dateTime
+) {
+    if (($time1 <= $time2) and ($time2 - $time1 <= xs:dayTimeDuration("PT5M"))) then
+        true()
+    else if (($time2 <= $time1) and ($time1 - $time2 <= xs:dayTimeDuration("PT5M"))) then
+        true()
+    else
+        false()
 };
 
 declare function analysis:getCycleTimeForCompositeState($mba as element(),
         $level as xs:string,
-        $inState as xs:string,
+        $inState as xs:string?,
         $state as element(),
         $changedStates as element()*,
         $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*,
         $toState as xs:string?
 ) (:as xs:duration?:) {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
@@ -232,7 +338,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
             let $cycleTimes :=
                 for $substate in $state/(sc:state | sc:parallel | sc:final)
                 return
-                    analysis:getCycleTimeForCompositeState($mba, $level, $inState, $substate, $changedStates, $changedTransitions, $toState)
+                    analysis:getCycleTimeForCompositeState($mba, $level, $inState, $substate, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState)
             return
                 if (fn:compare(fn:name($state), 'sc:parallel') = 0) then
                     max($cycleTimes)
@@ -240,7 +346,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                     fn:sum($cycleTimes)
         else
             analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, $toState) *
-                    analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $toState, true(), true()) *
+                    analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, $toState, true(), true()) *
                     (
                         if ($state/@id = $changedStates/state/@id) then
                         (: $state is changed: changedFactor :)
@@ -260,13 +366,10 @@ declare function analysis:getTransitionsToState($scxml as element(),
         $includeSubstates as xs:boolean,
         $checkParallel as xs:boolean(: ## Workaround to avoid stackoverflow when initial is nested in child of parallel ## :)
 ) as element()* {
-    if (
-        (fn:compare(fn:name($state), 'sc:initial') = 0) and
-                (fn:compare(fn:name($state/..), 'sc:scxml') = 0)
-    ) then
+    if (analysis:stateIsInitialOfSCXML($state) = true()) then
     (: initial state of scxml :)
         ()
-    else if ((fn:compare(fn:name($state), 'sc:initial') = 0)) then
+    else if (analysis:stateIsInitial($state) = true()) then
     (: <sc:initial>: transitions to parent ONLY, as there are no transitions to <sc:initial> :)
         analysis:getTransitionsToState($scxml, $state/.., false(), true())
     else if (
@@ -323,6 +426,7 @@ declare function analysis:getTransitionsToState($scxml as element(),
 declare function analysis:getTransitionProbabilityForTargetState($scxml as element(),
         $state as element(),
         $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*, (: ATTENTION: has to be in the same order as $changedTransitions! reason: node-identity :)
         $toState as xs:string?,
         $includeSubstates as xs:boolean,
         $checkParallel as xs:boolean(: ## Workaround to avoid stackoverflow when initial is nested in child of parallel ## :)
@@ -354,14 +458,15 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                             if (not(analysis:transitionInChangedTransitions($transition, $changedTransitions))) then
                                 analysis:getTransitionProbability($transition, $toState)
                             else
-                                0.5(: ToDo: if $transition in $changedTransitions, used fixed probability :)
+                                $changedTransitionsFactors[position() = functx:index-of-node($changedTransitions, $transition)]
                         )
-                                * analysis:getTransitionProbabilityForTargetState($scxml, $source, $changedTransitions, $toState, true(), true()))
+                                * analysis:getTransitionProbabilityForTargetState($scxml, $source, $changedTransitions, $changedTransitionsFactors, $toState, true(), true()))
                 ,
                 0
         )
 };
 
+(: returns true if a $transition is in a sequence of $changedTransitions, based on node identity :)
 declare function analysis:transitionInChangedTransitions($transition as element(),
         $changedTransitions as element()*
 ) as xs:boolean {
@@ -383,12 +488,12 @@ declare function analysis:getTransitionProbability($transition as element(),
     let $mba := $transition/ancestor::mba:mba[last()]
     let $level := $transition/ancestor::mba:elements[1]/../@name
     let $descendants := (: if the topLevel is $level, analyze $mba :)
-        analysis:getDescendantsOrMBA($mba, $level, $toState)
+        analysis:getDescendantsAtLevelOrMBA($mba, $level, $toState)
 
     let $sourceState := sc:getSourceState($transition)
 
     (:
-        for each descendent, check (via event log)
+        for each descendant, check (via event log)
          - how often the source state of transition is left
          - how often the target state is entered via $transition
             - check for $source, $target, $event, $cond
@@ -483,7 +588,7 @@ declare function analysis:compareTransitions($origTransition as element(),
 (: $toState: include only decendents which have been/are in $toState :)
 declare function analysis:getAverageCycleTime($mba as element(),
         $level as xs:string,
-        $inState as xs:string,
+        $inState as xs:string?,
         $stateId as xs:string,
         $toState as xs:string?
 ) as xs:duration? {
@@ -493,7 +598,7 @@ declare function analysis:getAverageCycleTime($mba as element(),
                 $mba
             else
                 analysis:getDescendantsAtLevel($mba, $level, $toState)
-        )[mba:isInState(., $inState)]
+        )[if($inState) then mba:isInState(., $inState) else true()]
 
     let $cycleTimes :=
         for $descendant in $descendants
@@ -698,7 +803,7 @@ declare function analysis:getMostAbstractStates($scxml as element(),
         $scxml/(sc:state | sc:parallel | sc:final)
 };
 
-declare function analysis:getDescendantsOrMBA($mba as element(),
+declare function analysis:getDescendantsAtLevelOrMBA($mba as element(),
         $level as xs:string,
         $toState as xs:string?
 ) as element()* {
@@ -708,6 +813,25 @@ declare function analysis:getDescendantsOrMBA($mba as element(),
         analysis:getDescendantsAtLevel($mba, $level, $toState)
 };
 
+(: for parsing function name out of transition condition :)
+declare function analysis:parseFunction($cond as xs:string
+) as xs:string {
+    fn:substring-before($cond, "(")
+};
+
+(: for parsing level name out of transition condition :)
+declare function analysis:parseLevelName($cond as xs:string
+) as xs:string {
+    fn:substring-before(fn:substring-after($cond, "'"), "'")
+};
+
+(: for parsing stateId out of transition condition :)
+declare function analysis:parseStateId($cond as xs:string
+) as xs:string {
+    fn:substring-before(fn:substring-after(fn:substring-after($cond, ","), "'"), "'")
+};
+
+(: ### cancelled ### :)
 declare function analysis:getActualAverageWIP($mba as element(),
         $level as xs:string,
         $function as function(element()) as xs:boolean

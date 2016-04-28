@@ -39,14 +39,25 @@ let $mbaOptHouseClerk := $testData//mba:mba[@name="MyHouseholdInsuranceClerk"]
 
 (:return analysis:getActualAverageLambda($mba, 'operationalInsurance', $timeFunc):)
 
-let $n :=
+(:let $n :=
 <states>
-    <state id="DevelopProducts" factor='3'/>
-    <state id='ChooseProducts' factor='1'/>
+    <state id="ImplementProduct" factor='3'/>
+    <state id='CheckFeasibility' factor='3'/>
 </states>
 let $inState := 'End1'
 let $toState := 'End1'
 let $level := 'tacticalInsurance'
+let $cTrans := (
+    analysis:getSCXMLAtLevel($mba, $level)//sc:transition[@event = "startDevelopment"],
+    analysis:getSCXMLAtLevel($mba, $level)//sc:transition[@event = "finishedCoding"]
+)
+let $cTransFactors :=
+    (
+        1,
+        0.5
+    )
+let $stateList := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $n, $cTrans, $cTransFactors)
+let $result := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), $n, $cTrans, $cTransFactors, 0.5)
 
 let $n1 :=
     <states>
@@ -56,15 +67,16 @@ let $n1 :=
 let $inState1 := 'End2'
 let $toState1 := 'Pay'
 let $level1 := 'operationalInsurance'
+let $cTrans1 := analysis:getSCXMLAtLevel($mba, $level1)//sc:transition[@event="finishedCollecting"]
+let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $toState1, $n1, (), ())
 
-(:$isInState('Archive_f') and $isInState('Print_f'):)
+let $state := $mba/mba:topLevel/mba:childLevel[@name='tacticalInsurance']/mba:elements/sc:scxml/sc:state[@id='DevelopProducts']
 
+return $state:)
 
-let $stateList := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $toState1, $n1)
-let $stateList := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $n)
-
+(:
 return $stateList
-
+:)
 (:let $state1 := $mbaOptHouseClerk//sc:state[@id='Archive']
 
 return element {'state'} {
@@ -83,9 +95,9 @@ return element {'state'} {
 return sc:computeEntrySet($mbaOptCarClerk//sc:transition[@event="finishedCollecting"])
 :)
 
-(:
+
 return analysis:getAverageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts", ())
-:)
+
 
 (:
 return analysis:getStateLog($mbaOptCarClerk)
@@ -137,9 +149,9 @@ let $n :=
     <state id='ChooseProducts' factor='7'/>
 </states>
 let $inState := 'End1'
-let $includeArchiveStates := false()
+let $excludeArchiveStates := true()
 let $level := 'tacticalInsurance'
-return analysis:getTotalCycleTime($mba, $level, $inState, $includeArchiveStates, $n)
+return analysis:getTotalCycleTime($mba, $level, $inState, $excludeArchiveStates, $n, ())
 :)
 
 (:
@@ -153,5 +165,72 @@ let $toState := 'End1'
 let $level := 'tacticalInsurance'
 let $state := analysis:getSCXMLAtLevel($mba, $level)//*[@id='DevelopProducts']
 
-return analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $n, $toState)
+return analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $n, (), $toState)
+:)
+
+(: NOT WORKING, HAS TO BE UPDATED
+let $n :=
+<states>
+    <state id="DevelopProducts" factor='3'/>
+    <state id='ChooseProducts' factor='1'/>
+</states>
+let $inState := 'End1'
+let $toState := 'End1'
+let $level := 'tacticalInsurance'
+
+let $n1 :=
+    <states>
+        <state id="Archive_f" factor='3'/>
+        <state id='CollectData' factor='7'/>
+    </states>
+let $inState1 := 'End2'
+let $toState1 := 'Pay'
+let $level1 := 'operationalInsurance'
+
+let $cTrans := (
+    analysis:getSCXMLAtLevel($mba, $level1)//sc:transition[@event = "finishedCollecting"],
+    analysis:getSCXMLAtLevel($mba, $level1)//sc:transition[@event = "archived"]
+)
+
+let $cTrans2 := analysis:getSCXMLAtLevel($mba, $level1)//sc:transition[@event="finishedCollecting"]
+
+let $stateList := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $toState1, $n1, $cTrans)
+let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $n, ())
+
+return $stateList
+:)
+
+(:
+let $n :=
+<states>
+    <state id="ImplementProduct" factor='3'/>
+    <state id='CheckFeasibility' factor='3'/>
+</states>
+let $inState := 'End1'
+let $toState := 'End1'
+let $level := 'tacticalInsurance'
+let $cTrans := (
+    analysis:getSCXMLAtLevel($mba, $level)//sc:transition[@event = "startDevelopment"],
+    analysis:getSCXMLAtLevel($mba, $level)//sc:transition[@event = "finishedCoding"]
+)
+let $cTransFactors :=
+    (
+        1,
+        0.5
+    )
+let $stateList := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $n, $cTrans, $cTransFactors)
+let $result := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), $n, $cTrans, $cTransFactors, 0.5)
+
+let $n1 :=
+    <states>
+        <state id="Archive_f" factor='3'/>
+        <state id='CollectData' factor='7'/>
+    </states>
+let $inState1 := 'End2'
+let $toState1 := 'Pay'
+let $level1 := 'operationalInsurance'
+let $cTrans1 := analysis:getSCXMLAtLevel($mba, $level1)//sc:transition[@event="finishedCollecting"]
+let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $toState1, $n1, (), ())
+
+return $result
 :)

@@ -16,6 +16,9 @@ let $mbaSub1 := $testData//mba:mba[@name="MySynchronizationTestSub1"]
 let $mbaSub2 := $testData//mba:mba[@name="MySynchronizationTestSub2"]
 let $mbaSub3 := $testData//mba:mba[@name="MySynchronizationTestSub3"]
 
+let $testDataAnc := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationAncestor.xml")
+let $mbaAnc := $testDataAnc/mba:mba
+
 let $changedStates :=
     <states>
         <state id="S1" factor='1'/>
@@ -33,8 +36,10 @@ let $cTransFactors :=
         1,
         1
     )
-let $cycleTime := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $changedStates, $cTrans, $cTransFactors)
-let $problems := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.5)
+
+let $cycleTime := analysis:getTotalCycleTime($mba, $level, $inState, true(), (), (), ())
+let $problems := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.3)
+let $problemStates := analysis:getProblematicStates($mba, $level, $inState, true(), 0.3)
 
 let $stateLog := analysis:getStateLog($mba)
 let $time1 := $stateLog/state[@ref='S2']/@until

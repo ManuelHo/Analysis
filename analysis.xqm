@@ -135,7 +135,7 @@ declare function analysis:getProblematicStates($mba as element(),
         $threshold as xs:decimal?
 ) as element()* {
 (: return all states whith average cycle time of more than $threshold times total cycle time :)
-    (: DECISION: cycleTime will be calculated for whole process, with the option to exclude archiveStates and only include descendants which are $inState :)
+(: DECISION: cycleTime will be calculated for whole process, with the option to exclude archiveStates and only include descendants which are $inState :)
     let $totalCycleTime := analysis:getTotalCycleTime($mba, $level, $inState, $excludeArchiveStates, (), (), ())
     let $cycleTimeThreshold := $totalCycleTime * $threshold
 
@@ -185,6 +185,11 @@ declare function analysis:getCausesOfProblematicStates(
 
 (: checks what is causing $state to be problematic :)
 (: $checkSynchronizedProcess: if true(), function was called from a path of a synchronized process. ProblematicStates in synchronized processes are causing delays the parallel process :)
+(:
+    $inState is only used for $level of first call (from user - $inState is null if function is called for another level)
+    $changedStates/$changedTransitions are not used. Otherwise the $stateLog has to be constructed.
+    $toState not used, instead there is the option to $excludeArchiveStates.
+:)
 declare function analysis:getCausesOfProblematicState($mba as element(),
         $level as xs:string,
         $state as element(),
@@ -194,107 +199,184 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
         $problematicStates as element()*,
         $checkSynchronizedProcess as xs:boolean
 ) {
-        if (analysis:stateIsInitialOfSCXML($state) = true()) then(: initial state of scxml, end recursion :)
-            ()
-        else if (analysis:stateIsInitial($state) = true()) then
-        (: call again for parent :)
-            analysis:getCausesOfProblematicState($mba, $level, $state/.., $inState, $excludeArchiveStates, $threshold, $problematicStates, $checkSynchronizedProcess)
-        else
-            (
-                if ($state/@id=$problematicStates/@id) then
-                    fn:concat( (: if state is problematic, print state + time:)
-                            fn:string($state/@id),
-                            '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, (), (), (), ()), ']'
-                    )
-                else ()
-                ,
-                let $substates := $state//(sc:state | sc:parallel | sc:final)
-                return
-                    if ($problematicStates/@id = $substates/@id) then (: check substates: if true at least one $substate is problematic :)
-                        for $sub in $substates[@id = $problematicStates/@id] (: print all problematic substates :)
-                        return fn:concat('  --> ', fn:string($sub/@id), '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $sub, (), (), (), ()), ']')
-                    else
-                        ()
-                ,
-                for $t in $state//sc:transition
-                let $subLevel := analysis:parseLevelName($t/@cond)
-                let $subSCXML := analysis:getSCXMLAtLevel($mba, $subLevel)
-                let $synchronizedState := $subSCXML//(sc:state | sc:parallel | sc:final)[@id = analysis:parseStateId($t/@cond)]
-                return
-                (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
-                    if (($t/@cond) and (analysis:parseFunction($t/@cond)="$_everyDescendantAtLevelIsInState")) then
-                        analysis:getCausesOfProblematicStateEveryDescendantAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $subLevel, $subSCXML, $synchronizedState)
-                    else
-                        ()(: ToDo: implement other sync. functions :)
-                ,
-                if ($checkSynchronizedProcess=true()) then
-                    (: follow process until initial/problematicState :)
-                    let $precedingStates := analysis:getTransitionsToState(analysis:getSCXMLAtLevel($mba, $level), $state, true(), true())/..
+    if (analysis:stateIsInitialOfSCXML($state) = true()) then (: initial state of scxml, end recursion :)
+        fn:concat("  --> Process on level: '", $level, "'")
+    else if (analysis:stateIsInitial($state) = true()) then
+    (: call again for parent :)
+        analysis:getCausesOfProblematicState($mba, $level, $state/.., $inState, $excludeArchiveStates, $threshold, $problematicStates, $checkSynchronizedProcess)
+    else
+        (
+            if ($state/@id = $problematicStates/@id) then
+                fn:concat( (: if state is problematic, print state + time:)
+                        fn:string($state/@id),
+                        '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, (), (), (), ()), ']'
+                )
+            else ()
+            ,
+            analysis:getProblematicSubstates($mba, $level, $state, $inState, $problematicStates)
+            ,
+            for $t in $state//sc:transition
+            return
+                if ($t/@cond) then
+                    let $syncFunction := analysis:parseFunction($t/@cond)
+                    let $syncLevel := analysis:parseLevelName($t/@cond)
+                    let $syncStateId := analysis:parseStateId($t/@cond)
                     return
-                        if ($precedingStates/@id = $problematicStates/@id) then(: at least one $precedingState is problematic :)
-                            for $prec in $precedingStates[@id = $problematicStates/@id](: print all preceding problematic states :)
-                            return fn:concat('  --> ', $prec/@id, '[', analysis:getCycleTimeForCompositeState($mba, $level, (), $prec, (), (), (), ()), ']')
+                        if (
+                            ($syncFunction = "$_everyDescendantAtLevelIsInState") or
+                                    ($syncFunction = "$_someDescendantAtLevelIsInState")) then (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
+                            analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
+                        else if ($syncFunction = "$_ancestorAtLevelIsInState") then
+                            analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
                         else
-                            for $prec in $precedingStates
-                            return analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $problematicStates, true())
+                            ()(: ToDo: implement other sync. functions. Else: () :)
                 else
-                    ()
-            )
+                    () (: no cond --> no check needed for sync :)
+            ,
+            if ($checkSynchronizedProcess = true()) then
+            (: follow process until initial/problematicState :)
+                analysis:getCauseOfProblematicSync($mba, $level, $state, $excludeArchiveStates, $threshold)
+            else
+                ()
+        )
 };
 
-(: moved logic for function $_everyDescendantAtLevelIsInState :)
-declare function analysis:getCausesOfProblematicStateEveryDescendantAtLevelIsInState($mba as element(),
+(: to prevent errors, this function checks if the $mba contains a scxml-element for $syncLevel. If not, it replaces $mba with the ancestor at $syncLevel. :)
+declare function analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba as element(),
         $level as xs:string,
         $state as element(),
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?,
-        $subLevel as xs:string,
-        $subSCXML as element(),
-        $synchronizedState as element()
+        $syncFunction as xs:string,
+        $syncLevel as xs:string,
+        $syncStateId as xs:string
+) (:as xs:string*:) {
+(: ancestor: check if level is in $mba. If not, check ancestors :)
+    let $scxml := analysis:getSCXMLAtLevel($mba, $syncLevel)
+    return
+        if ($scxml) then
+            analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
+        else
+            analysis:getCausesOfProblematicStateMBAAtLevelIsInState(mba:getAncestorAtLevel($mba, $syncLevel), $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
+};
+
+(: moved logic for function $_everyDescendantAtLevelIsInState :)
+declare function analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba as element(),
+        $level as xs:string,
+        $state as element(),
+        $excludeArchiveStates as xs:boolean?,
+        $threshold as xs:decimal?,
+        $syncFunction as xs:string,
+        $syncLevel as xs:string,
+        $syncStateId as xs:string
+) (:as xs:string*:) {
+    let $syncSCXML := analysis:getSCXMLAtLevel($mba, $syncLevel)
+    let $syncState := $syncSCXML//(sc:state | sc:parallel | sc:final)[@id = $syncStateId]
+
+    let $syncCausingProblem := analysis:isSyncCausingProblem($mba, $level, $state, $syncFunction, $syncLevel, $syncStateId)
+
+    (: check if @until of problematic state is shortly after( within 5 minutes) @from of preceding state at least ONCE :)
+    return
+        if ($syncCausingProblem = true()) then
+            analysis:getCauseOfProblematicSync($mba, $syncLevel, $syncState, $excludeArchiveStates, $threshold)
+        else
+            ()(: time is totally different, $state is not delayed by sync :)
+};
+
+declare function analysis:isSyncCausingProblem($mba as element(),
+        $level as xs:string,
+        $state as element(),
+        $syncFunction as xs:string,
+        $syncLevel as xs:string,
+        $syncStateId as xs:string
 ) {
     let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
-    let $syncCausingProblem :=   (: list, for each descendant check if there is a problem with this sync :)
+    return (: for each descendant check if there is a problem with this sync :)
         functx:is-value-in-sequence(
                 true()
                 ,
                 for $descendant in $descendants
                 let $stateLog := analysis:getStateLog($descendant)
-                let $untilProblemState := $stateLog/state[@ref=$state/@id]/@until
-                let $maxUntilPrecedingState := analysis:maxUntilState($descendant, $subLevel, $synchronizedState/@id)
+                let $untilProblemState := $stateLog/state[@ref = $state/@id]/@until
+                let $fromTimeSyncState :=
+                    if($syncFunction = "$_ancestorAtLevelIsInState") then
+                        analysis:getFromTimeOfState(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId, $syncFunction)
+                    else (: descendants :)
+                        analysis:getFromTimeOfState($descendant, $syncLevel, $syncStateId, $syncFunction)
                 return
-                    analysis:timesAreSame($untilProblemState, $maxUntilPrecedingState)
+                    if (fn:empty($untilProblemState) or fn:empty($fromTimeSyncState)) then
+                        false()
+                    else
+                        analysis:timesAreSame($untilProblemState, $fromTimeSyncState)
         )
-
-    (: check if @until of problematic state is near( within 5 minutes) MAX(@from) of preceding state at least ONCE :)
-    return
-        if ($syncCausingProblem=true()) then
-            let $syncProblematicStates := analysis:getProblematicStates($mba, $subLevel, (), $excludeArchiveStates, $threshold)
-            (: "$_everyDescendantAtLevelIsInState": $state depends on preceding states of $synchronizedState  :)
-            let $precedingStates := analysis:getTransitionsToState($subSCXML, $synchronizedState, true(), true())/..
-            return
-                if ($precedingStates/@id = $syncProblematicStates/@id) then(: at least one $precedingState is problematic :)
-                    for $prec in $precedingStates[@id = $syncProblematicStates/@id](: print all preceding problematic states :)
-                    return fn:concat('  --> ', $prec/@id, '[', analysis:getCycleTimeForCompositeState($mba, $subLevel, (), $prec, (), (), (), ()), ']')
-                else
-                (: follow process until a problematic state is found or initial :)
-                    for $prec in $precedingStates
-                    return analysis:getCausesOfProblematicState($mba, $subLevel, $prec, (), $excludeArchiveStates, $threshold, $syncProblematicStates, true())
-        else
-            () (: time is totally different, $state is not delayed by $precedingState :)
 };
 
-(: returns max @until from stateLogs of mba/level :)
-declare function analysis:maxUntilState($mba as element(),
+(: follow process and until there is a problematic state :)
+declare function analysis:getCauseOfProblematicSync($mba as element(),
+        $level as xs:string,
+        $state as element(), (: syncState :)
+        $excludeArchiveStates as xs:boolean?,
+        $threshold as xs:decimal?
+) (:as xs:string*:) {
+    let $scxml := analysis:getSCXMLAtLevel($mba, $level)
+    let $syncProblematicStates := analysis:getProblematicStates($mba, $level, (), $excludeArchiveStates, $threshold)
+    (: "$_everyDescendantAtLevelIsInState"/"$_someDescendantAtLevelIsInState"/"$_ancestorAtLevelIsInState": $state depends on preceding states of syncState  :)
+    let $precedingStates := analysis:getTransitionsToState($scxml, $state, true(), true())/..
+    return
+        if ($precedingStates/@id = $syncProblematicStates/@id) then (: at least one $precedingState is problematic :)
+            for $prec in $precedingStates[@id = $syncProblematicStates/@id] (: print all preceding problematic states :)
+            return
+                fn:concat('  --> ', $prec/@id, '[', analysis:getCycleTimeForCompositeState($mba, $level, (), $prec, (), (), (), ()), ']')
+            (: ToDo: test cascading problems. checks for further sync. dependencies :)
+        else
+        (: follow process until a problematic state is found or initial :)
+            for $prec in $precedingStates
+            return analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $syncProblematicStates, true())
+};
+
+(: returns correct @from from stateLogs of mba/level depending on $syncFunction :)
+declare function analysis:getFromTimeOfState($mba as element(),
+        $level as xs:string,
+        $state as xs:string,
+        $syncFunction as xs:string
+) as xs:dateTime? {
+    let $fromTimes := analysis:getAllFromTimes($mba, $level, $state)
+    return
+        if ($syncFunction = "$_everyDescendantAtLevelIsInState") then
+            max($fromTimes)
+        else if ($syncFunction = "$_someDescendantAtLevelIsInState") then
+            min($fromTimes)
+        else if ($syncFunction = "$_ancestorAtLevelIsInState") then
+                min($fromTimes) (: just to be safe. If there is a loop and $state is more than one time in $stateLog, take first occurence :)
+            else
+                ()
+};
+
+(: returns all @from times for a given state :)
+declare function analysis:getAllFromTimes($mba as element(),
         $level as xs:string,
         $state as xs:string
-) {
-    let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
+) as xs:dateTime* {
+    for $descendant in analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
+    let $subStateLog := analysis:getStateLog($descendant)
+    return xs:dateTime($subStateLog/state[@ref = $state]/@from)
+};
+
+(: called from getCausesOfProblematicState, checks if a substate of $state is causing a delay and returns "  --> @id [<time>]" if yes :)
+declare function analysis:getProblematicSubstates($mba as element(),
+        $level as xs:string,
+        $state as element(),
+        $inState as xs:string?,
+        $problematicStates as element()*
+) as xs:string* {
+    let $substates := $state//(sc:state | sc:parallel | sc:final)
     return
-        max(
-                for $descendant in $descendants
-                let $subStateLog := analysis:getStateLog($descendant)
-                return xs:dateTime($subStateLog/state[@ref=$state]/@from)
-        )
+        if ($problematicStates/@id = $substates/@id) then (: check substates: if true at least one $substate is problematic :)
+            for $sub in $substates[@id = $problematicStates/@id] (: print all problematic substates :)
+            return fn:concat('  --> ', fn:string($sub/@id), '[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $sub, (), (), (), ()), ']')
+            (: The reasons why these states are problematic are analyzed separately above :)
+        else
+            ()
 };
 
 declare function analysis:stateIsInitial($state as element()
@@ -309,12 +391,11 @@ declare function analysis:stateIsInitialOfSCXML($state as element()
 };
 
 (: true if two times are within 5 minutes :)
+(: $time1 has to be AFTER $time2 :)
 declare function analysis:timesAreSame($time1 as xs:dateTime,
         $time2 as xs:dateTime
 ) {
-    if (($time1 <= $time2) and ($time2 - $time1 <= xs:dayTimeDuration("PT5M"))) then
-        true()
-    else if (($time2 <= $time1) and ($time1 - $time2 <= xs:dayTimeDuration("PT5M"))) then
+    if (($time2 <= $time1) and ($time1 - $time2 <= xs:dayTimeDuration("PT5M"))) then
         true()
     else
         false()
@@ -598,7 +679,7 @@ declare function analysis:getAverageCycleTime($mba as element(),
                 $mba
             else
                 analysis:getDescendantsAtLevel($mba, $level, $toState)
-        )[if($inState) then mba:isInState(., $inState) else true()]
+        )[if ($inState) then mba:isInState(., $inState) else true()]
 
     let $cycleTimes :=
         for $descendant in $descendants
@@ -760,9 +841,9 @@ declare function analysis:getStateLogToState($mba as element(),
 
 declare function analysis:getSCXMLAtLevel($mba as element(),
         $level as xs:string
-) as element() {
-    ($mba/mba:topLevel[@name = $level])/mba:elements/sc:scxml |
-            ($mba//mba:childLevel[@name = $level])[1]/mba:elements/sc:scxml
+) as element()* {
+        ($mba/mba:topLevel[@name = $level])/mba:elements/sc:scxml |
+                ($mba//mba:childLevel[@name = $level])[1]/mba:elements/sc:scxml
 };
 
 (: returns descendants which have been in $toState :)

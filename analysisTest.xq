@@ -39,7 +39,7 @@ let $mbaOptHouseClerk := $testData//mba:mba[@name="MyHouseholdInsuranceClerk"]
 
 (:return analysis:getActualAverageLambda($mba, 'operationalInsurance', $timeFunc):)
 
-(:let $n :=
+let $n :=
 <states>
     <state id="ImplementProduct" factor='3'/>
     <state id='CheckFeasibility' factor='3'/>
@@ -56,8 +56,8 @@ let $cTransFactors :=
         1,
         0.5
     )
-let $stateList := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $n, $cTrans, $cTransFactors)
-let $result := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), $n, $cTrans, $cTransFactors, 0.5)
+let $stateList := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, (), (), ())
+let $result := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.2)
 
 let $n1 :=
     <states>
@@ -72,7 +72,7 @@ let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $
 
 let $state := $mba/mba:topLevel/mba:childLevel[@name='tacticalInsurance']/mba:elements/sc:scxml/sc:state[@id='DevelopProducts']
 
-return $state:)
+return $result
 
 (:
 return $stateList
@@ -95,9 +95,9 @@ return element {'state'} {
 return sc:computeEntrySet($mbaOptCarClerk//sc:transition[@event="finishedCollecting"])
 :)
 
-
+(:
 return analysis:getAverageCycleTime($mba, "tacticalInsurance", "End1", "ChooseProducts", ())
-
+:)
 
 (:
 return analysis:getStateLog($mbaOptCarClerk)

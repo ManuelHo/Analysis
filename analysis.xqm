@@ -182,9 +182,7 @@ declare function analysis:getCausesOfProblematicStates(
         for $state in $problematicStates
         return
             fn:concat(
-                    '[',
                     fn:string($state/@id),
-                    ']',
                     (:'[', analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, (), (), (), ()), ']',:)
                     analysis:getCausesOfProblematicState($mba, $level, $state, $inState, $excludeArchiveStates, $threshold, $problematicStates, false())
             )

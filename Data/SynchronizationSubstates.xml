@@ -1,0 +1,424 @@
+<mba
+	xmlns="http://www.dke.jku.at/MBA"
+	xmlns:sync="http://www.dke.jku.at/MBA/Synchronization"
+	xmlns:sc="http://www.w3.org/2005/07/scxml"
+	xmlns:mba="http://www.dke.jku.at/MBA"
+	name="MySynchronizationTest"
+	hierarchy="simple">
+	<topLevel name="l1">
+		<elements>
+			<sc:scxml name="L1">
+				<sc:datamodel>
+					<sc:data id="description">MBA to test analysis.xqm</sc:data>
+					<sc:data id="_event"/>
+					<sc:data id="_x">
+						<db xmlns="">myMBAse</db>
+						<collection xmlns="">MySynchronizationTest</collection>
+						<mba xmlns="">MySynchronizationTest</mba>
+						<currentStatus xmlns="">
+							<state ref="S4"/>
+						</currentStatus>
+						<externalEventQueue xmlns=""/>
+						<xes:log xmlns:xes="http://www.xes-standard.org/">
+							<xes:trace>
+								<xes:event>
+									<xes:date key="time:timestamp" value="2016-01-01T10:00:00.000+02:00"/>
+									<xes:string key="sc:initial" value="L1"/>
+									<xes:string key="sc:target" value="S1"/>
+								</xes:event>
+								<xes:event>
+									<xes:date key="time:timestamp" value="2016-01-01T10:10:00.000+02:00"/>
+									<xes:string key="sc:state" value="S1"/>
+									<xes:string key="concept:name" value="t1"/>
+									<xes:string key="sc:event" value="t1"/>
+									<xes:string key="sc:target" value="S2.1"/>
+								</xes:event>
+								<xes:event>
+									<xes:date key="time:timestamp" value="2016-01-01T10:20:00.000+02:00"/>
+									<xes:string key="sc:state" value="S2.1"/>
+									<xes:string key="concept:name" value="t2.1"/>
+									<xes:string key="sc:event" value="t2.1"/>
+									<xes:string key="sc:target" value="S2.2"/>
+								</xes:event>
+								<xes:event>
+									<xes:date key="time:timestamp" value="2016-01-01T12:10:00.000+02:00"/>
+									<xes:string key="sc:state" value="S2.2"/>
+									<xes:string key="concept:name" value="t2"/>
+									<xes:string key="sc:event" value="t2"/>
+									<xes:string key="sc:target" value="S3"/>
+									<xes:string key="sc:cond" value="$_everyDescendantAtLevelIsInState('l2', 'SY')"/>
+								</xes:event>
+								<xes:event>
+									<xes:date key="time:timestamp" value="2016-01-01T12:30:00.000+02:00"/>
+									<xes:string key="sc:state" value="S3"/>
+									<xes:string key="concept:name" value="t3"/>
+									<xes:string key="sc:event" value="t3"/>
+									<xes:string key="sc:target" value="S4"/>
+								</xes:event>
+							</xes:trace>
+						</xes:log>
+					</sc:data>
+				</sc:datamodel>
+				<sc:initial>
+					<sc:transition target="S1"/>
+				</sc:initial>
+				<sc:state id="S1">
+					<sc:transition event="t1" target="S2.1"/>
+				</sc:state>
+				<sc:state id="S2">
+					<sc:state id="S2.1">
+						<sc:transition event="t2.1" target="S2.2"/>
+					</sc:state>
+					<sc:state id="S2.2">
+						<sc:transition event="t2" cond="$_everyDescendantAtLevelIsInState('l2', 'SY')" target="S3"/>
+					</sc:state>
+				</sc:state>
+				<sc:state id="S3">
+					<sc:transition event="t3" target="S4"/>
+				</sc:state>
+				<sc:state id="S4" mba:isArchiveState="true"/>
+			</sc:scxml>
+		</elements>
+		<childLevel name="l2">
+			<elements>
+				<sc:scxml name="L2">
+					<sc:datamodel>
+						<sc:data id="_event"/>
+						<sc:data id="_x">
+						</sc:data>
+					</sc:datamodel>
+					<sc:initial>
+						<sc:transition target="SW"/>
+					</sc:initial>
+					<sc:state id="SW">
+						<sc:transition event="tw.1" target="SX.1"/>
+						<sc:transition event="tw.2" target="SX.2"/>
+					</sc:state>
+					<sc:state id="SX.1">
+						<sc:transition event="tx.1" target="SY"/>
+					</sc:state>
+					<sc:state id="SX.2">
+						<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+					</sc:state>
+					<sc:state id="SY" mba:isArchiveState="true"/>
+				</sc:scxml>
+			</elements>
+			<childLevel name="l3">
+				<elements>
+					<sc:scxml name="L3">
+						<sc:datamodel>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="I"/>
+						</sc:initial>
+						<sc:state id="I">
+							<sc:transition event="ti" target="J"/>
+						</sc:state>
+						<sc:state id="J" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+			</childLevel>
+		</childLevel>
+	</topLevel>
+	<concretizations>
+		<mba
+			xmlns="http://www.dke.jku.at/MBA"
+			xmlns:sync="http://www.dke.jku.at/MBA/Synchronization"
+			xmlns:sc="http://www.w3.org/2005/07/scxml"
+			name="MySynchronizationTestSub1"
+			hierarchy="simple">
+			<topLevel name="l2">
+				<elements>
+					<sc:scxml name="L2">
+						<sc:datamodel>
+							<sc:data id="description">sub MBA to test analysis.xqm</sc:data>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+								<db xmlns="">myMBAse</db>
+								<collection xmlns="">MySynchronizationTest</collection>
+								<mba xmlns="">MySynchronizationTestSub1</mba>
+								<currentStatus xmlns="">
+									<state ref="SY"/>
+								</currentStatus>
+								<externalEventQueue xmlns=""/>
+								<xes:log xmlns:xes="http://www.xes-standard.org/">
+									<xes:trace>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T10:00:00.000+02:00"/>
+											<xes:string key="sc:initial" value="L2"/>
+											<xes:string key="sc:target" value="SW"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T10:10:00.000+02:00"/>
+											<xes:string key="sc:state" value="SW"/>
+											<xes:string key="concept:name" value="tw.1"/>
+											<xes:string key="sc:event" value="tw.1"/>
+											<xes:string key="sc:target" value="SX.1"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T10:30:00.000+02:00"/>
+											<xes:string key="sc:state" value="SX.1"/>
+											<xes:string key="concept:name" value="tx.1"/>
+											<xes:string key="sc:event" value="tx.1"/>
+											<xes:string key="sc:target" value="SY"/>
+										</xes:event>
+									</xes:trace>
+								</xes:log>
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="SW"/>
+						</sc:initial>
+						<sc:state id="SW">
+							<sc:transition event="tw.1" target="SX.1"/>
+							<sc:transition event="tw.2" target="SX.2"/>
+						</sc:state>
+						<sc:state id="SX.1">
+							<sc:transition event="tx.1" target="SY"/>
+						</sc:state>
+						<sc:state id="SX.2">
+							<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+						</sc:state>
+						<sc:state id="SY" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+				<childLevel name="l3">
+					<elements>
+						<sc:scxml name="L3">
+							<sc:datamodel>
+								<sc:data id="_event"/>
+								<sc:data id="_x">
+								</sc:data>
+							</sc:datamodel>
+							<sc:initial>
+								<sc:transition target="I"/>
+							</sc:initial>
+							<sc:state id="I">
+								<sc:transition event="ti" target="J"/>
+							</sc:state>
+							<sc:state id="J" mba:isArchiveState="true"/>
+						</sc:scxml>
+					</elements>
+				</childLevel>				
+			</topLevel>
+		</mba>
+		<mba
+			xmlns="http://www.dke.jku.at/MBA"
+			xmlns:sync="http://www.dke.jku.at/MBA/Synchronization"
+			xmlns:sc="http://www.w3.org/2005/07/scxml"
+			name="MySynchronizationTestSub2"
+			hierarchy="simple">
+			<topLevel name="l2">
+				<elements>
+					<sc:scxml name="L2">
+						<sc:datamodel>
+							<sc:data id="description">sub MBA to test analysis.xqm</sc:data>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+								<db xmlns="">myMBAse</db>
+								<collection xmlns="">MySynchronizationTest</collection>
+								<mba xmlns="">MySynchronizationTestSub2</mba>
+								<currentStatus xmlns="">
+									<state ref="SY"/>
+								</currentStatus>
+								<externalEventQueue xmlns=""/>
+								<xes:log xmlns:xes="http://www.xes-standard.org/">
+									<xes:trace>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T10:00:00.000+02:00"/>
+											<xes:string key="sc:initial" value="L2"/>
+											<xes:string key="sc:target" value="SW"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T11:50:00.000+02:00"/>
+											<xes:string key="sc:state" value="SW"/>
+											<xes:string key="concept:name" value="tw.2"/>
+											<xes:string key="sc:event" value="tw.2"/>
+											<xes:string key="sc:target" value="SX.2"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T12:10:00.000+02:00"/>
+											<xes:string key="sc:state" value="SX.2"/>
+											<xes:string key="concept:name" value="tx.2"/>
+											<xes:string key="sc:cond" value="$_everyDescendantAtLevelIsInState('l3', 'J')"/>
+											<xes:string key="sc:event" value="tx.2"/>
+											<xes:string key="sc:target" value="SY"/>
+										</xes:event>
+									</xes:trace>
+								</xes:log>
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="SW"/>
+						</sc:initial>
+						<sc:state id="SW">
+							<sc:transition event="tw.1" target="SX.1"/>
+							<sc:transition event="tw.2" target="SX.2"/>
+						</sc:state>
+						<sc:state id="SX.1">
+							<sc:transition event="tx.1" target="SY"/>
+						</sc:state>
+						<sc:state id="SX.2">
+							<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+						</sc:state>
+						<sc:state id="SY" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+				<childLevel name="l3">
+					<elements>
+						<sc:scxml name="L3">
+							<sc:datamodel>
+								<sc:data id="_event"/>
+								<sc:data id="_x">
+								</sc:data>
+							</sc:datamodel>
+							<sc:initial>
+								<sc:transition target="I"/>
+							</sc:initial>
+							<sc:state id="I">
+								<sc:transition event="ti" target="J"/>
+							</sc:state>
+							<sc:state id="J" mba:isArchiveState="true"/>
+						</sc:scxml>
+					</elements>
+				</childLevel>
+			</topLevel>
+		</mba>
+		<mba
+			xmlns="http://www.dke.jku.at/MBA"
+			xmlns:sync="http://www.dke.jku.at/MBA/Synchronization"
+			xmlns:sc="http://www.w3.org/2005/07/scxml"
+			name="MySynchronizationTestSub3"
+			hierarchy="simple">
+			<topLevel name="l2">
+				<elements>
+					<sc:scxml name="L2">
+						<sc:datamodel>
+							<sc:data id="description">sub MBA to test analysis.xqm</sc:data>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+								<db xmlns="">myMBAse</db>
+								<collection xmlns="">MySynchronizationTest</collection>
+								<mba xmlns="">MySynchronizationTestSub3</mba>
+								<currentStatus xmlns="">
+									<state ref="SY"/>
+								</currentStatus>
+								<externalEventQueue xmlns=""/>
+								<xes:log xmlns:xes="http://www.xes-standard.org/">
+									<xes:trace>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T10:00:00.000+02:00"/>
+											<xes:string key="sc:initial" value="L2"/>
+											<xes:string key="sc:target" value="SW"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T10:20:00.000+02:00"/>
+											<xes:string key="sc:state" value="SW"/>
+											<xes:string key="concept:name" value="tw.2"/>
+											<xes:string key="sc:event" value="tw.2"/>
+											<xes:string key="sc:target" value="SX.2"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T12:09:00.000+02:00"/>
+											<xes:string key="sc:state" value="SX.2"/>
+											<xes:string key="concept:name" value="tx.2"/>
+											<xes:string key="sc:cond" value="$_everyDescendantAtLevelIsInState('l3', 'J')"/>
+											<xes:string key="sc:event" value="tx.2"/>
+											<xes:string key="sc:target" value="SY"/>
+										</xes:event>
+									</xes:trace>
+								</xes:log>
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="SW"/>
+						</sc:initial>
+						<sc:state id="SW">
+							<sc:transition event="tw.1" target="SX.1"/>
+							<sc:transition event="tw.2" target="SX.2"/>
+						</sc:state>
+						<sc:state id="SX.1">
+							<sc:transition event="tx.1" target="SY"/>
+						</sc:state>
+						<sc:state id="SX.2">
+							<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+						</sc:state>
+						<sc:state id="SY" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+				<childLevel name="l3">
+					<elements>
+						<sc:scxml name="L3">
+							<sc:datamodel>
+								<sc:data id="_event"/>
+								<sc:data id="_x">
+								</sc:data>
+							</sc:datamodel>
+							<sc:initial>
+								<sc:transition target="I"/>
+							</sc:initial>
+							<sc:state id="I">
+								<sc:transition event="ti" target="J"/>
+							</sc:state>
+							<sc:state id="J" mba:isArchiveState="true"/>
+						</sc:scxml>
+					</elements>
+				</childLevel>
+			</topLevel>
+			<concretizations>
+				<mba
+					xmlns="http://www.dke.jku.at/MBA"
+					xmlns:sync="http://www.dke.jku.at/MBA/Synchronization"
+					xmlns:sc="http://www.w3.org/2005/07/scxml"
+					name="MySynchronizationTestSub3.1"
+					hierarchy="simple">
+					<topLevel name="l3">
+						<elements>
+							<sc:scxml name="L3">
+								<sc:datamodel>
+									<sc:data id="description">sub MBA to test analysis.xqm</sc:data>
+									<sc:data id="_event"/>
+									<sc:data id="_x">
+										<db xmlns="">myMBAse</db>
+										<collection xmlns="">MySynchronizationTest</collection>
+										<mba xmlns="">MySynchronizationTestSub1.1</mba>
+										<currentStatus xmlns="">
+											<state ref="J"/>
+										</currentStatus>
+										<externalEventQueue xmlns=""/>
+										<xes:log xmlns:xes="http://www.xes-standard.org/">
+											<xes:trace>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T12:07:00.000+02:00"/>
+													<xes:string key="sc:initial" value="L3"/>
+													<xes:string key="sc:target" value="I"/>
+												</xes:event>
+												<xes:event>
+													<xes:date key="time:timestamp" value="2016-01-01T12:08:00.000+02:00"/>
+													<xes:string key="sc:state" value="I"/>
+													<xes:string key="concept:name" value="ti"/>
+													<xes:string key="sc:event" value="ti"/>
+													<xes:string key="sc:target" value="J"/>
+												</xes:event>
+											</xes:trace>
+										</xes:log>
+									</sc:data>
+								</sc:datamodel>
+								<sc:initial>
+									<sc:transition target="I"/>
+								</sc:initial>
+								<sc:state id="I">
+									<sc:transition event="ti" target="J"/>
+								</sc:state>
+								<sc:state id="J" mba:isArchiveState="true"/>
+							</sc:scxml>
+						</elements>			
+					</topLevel>
+				</mba>
+			</concretizations>
+		</mba>
+	</concretizations>
+</mba>

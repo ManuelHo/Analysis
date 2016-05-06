@@ -18,6 +18,8 @@ let $mbaSub3 := $testData//mba:mba[@name="MySynchronizationTestSub3"]
 
 let $testDataAnc := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationAncestor.xml")
 let $mbaAnc := $testDataAnc/mba:mba
+let $testDataSub := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationSubstates.xml")
+let $mbaSubstates := $testDataSub/mba:mba
 
 let $changedStates :=
     <states>
@@ -38,8 +40,8 @@ let $cTransFactors :=
     )
 
 let $cycleTime := analysis:getTotalCycleTime($mba, $level, $inState, true(), (), (), ())
-let $problems := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.3)
-let $problemStates := analysis:getProblematicStates($mba, $level, $inState, true(), 0.3)
+let $problems := analysis:getCausesOfProblematicStates($mbaSubstates, $level, $inState, true(), 0.3)
+let $problemStates := analysis:getProblematicStates($mbaSubstates, $level, $inState, true(), 0.3)
 
 let $stateLog := analysis:getStateLog($mba)
 let $time1 := $stateLog/state[@ref='S2']/@until
@@ -55,5 +57,3 @@ return
         ,
         $problems
     )
-
-    (: ToDo: test substates with synchronization :)

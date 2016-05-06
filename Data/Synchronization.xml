@@ -136,7 +136,7 @@
 											<xes:string key="sc:target" value="SW"/>
 										</xes:event>
 										<xes:event>
-											<xes:date key="time:timestamp" value="2016-01-01T10:29:00.000+02:00"/>
+											<xes:date key="time:timestamp" value="2016-01-01T10:10:00.000+02:00"/>
 											<xes:string key="sc:state" value="SW"/>
 											<xes:string key="concept:name" value="tw"/>
 											<xes:string key="sc:event" value="tw"/>
@@ -214,7 +214,7 @@
 											<xes:string key="sc:target" value="SW"/>
 										</xes:event>
 										<xes:event>
-											<xes:date key="time:timestamp" value="2016-01-01T12:09:00.000+02:00"/>
+											<xes:date key="time:timestamp" value="2016-01-01T10:10:00.000+02:00"/>
 											<xes:string key="sc:state" value="SW"/>
 											<xes:string key="concept:name" value="tw"/>
 											<xes:string key="sc:event" value="tw"/>
@@ -292,7 +292,7 @@
 											<xes:string key="sc:target" value="SW"/>
 										</xes:event>
 										<xes:event>
-											<xes:date key="time:timestamp" value="2016-01-01T12:08:00.000+02:00"/>
+											<xes:date key="time:timestamp" value="2016-01-01T10:10:00.000+02:00"/>
 											<xes:string key="sc:state" value="SW"/>
 											<xes:string key="concept:name" value="tw"/>
 											<xes:string key="sc:event" value="tw"/>

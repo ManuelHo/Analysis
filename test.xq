@@ -77,4 +77,12 @@ let $string := "$_everyDescendantAtLevelIsInState('levelName', 'StateId')"
 let $levelName := fn:substring-before(fn:substring-after($string, "'"), "'")
 let $stateId := fn:substring-before(fn:substring-after(fn:substring-after($string, ","), "'"), "'")
 
-return ($levelName, $stateId)
+let $subMap := map:merge((map:entry(1, 2), map:entry(2, 3)))
+let $map := map:merge((map:entry(1, $subMap)))
+
+let $m := map:get(map:get($map, 1), 1)
+
+let $x := "-->[I],[SW]"
+
+return
+    fn:substring($x, 1, 3)

@@ -84,5 +84,4 @@ let $m := map:get(map:get($map, 1), 1)
 
 let $x := "-->[I],[SW]"
 
-return
-    fn:substring($x, 1, 3)
+return <state ref="{$string}"></state>

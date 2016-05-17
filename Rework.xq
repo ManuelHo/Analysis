@@ -17,35 +17,43 @@ let $scxml :=
             <sc:transition target="A"/>
         </sc:initial>
         <sc:state id="A">
-            <sc:transition event="toB0" target="B"/>
-            <sc:transition event="toC" target="C"/>
+            <sc:transition event="toB" target="B"/>
         </sc:state>
         <sc:state id="B">
-            <sc:transition event="toD" target="D"/>
+            <sc:transition event="toF" target="F"/>
+            <sc:transition event="toC" target="C"/>
         </sc:state>
         <sc:state id="C">
-            <sc:transition event="toE" target="E"/>
-            <sc:transition event="toB1" target="B"/>
-        </sc:state>
-        <sc:state id="E">
+            <sc:transition event="toD" target="D"/>
             <sc:transition event="toA" target="A"/>
+            <sc:transition event="toF1" target="F"/>
         </sc:state>
-        <sc:state id="D" mba:isArchiveState="true"/>
+        <sc:state id="D">
+            <sc:transition event="toA1" target="A"/>
+        </sc:state>
+        <sc:state id="F" mba:isArchiveState="true"/>
     </sc:scxml>
 
-let $scc := tarjan:tarjanAlgorithm($scxml)
+let $state := $scxml//sc:state[@id="A"]
+let $scc := analysis:getSCCForRootNode($scxml, $state)
 
 let $testData := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/Rework.xml")
 let $mba := $testData/mba:mba
-let $mbaSub1 := $testData//mba:mba[@name="MyReworkTestSub1"]
-
+let $mbaSub1 := $testData//mba:mba[@name = "MyReworkTestSub1"]
 let $level := 'l2'
 let $stateId := 'S2'
-
 let $ctS2 := analysis:getAverageCycleTime($mba, 'l2', (), 'S2', ())
-(:let $ctTotal := analysis:getTotalCycleTime($mba, 'l2', (), (), (), (), ()):) (: stack overflow :)
-
 let $scxml := analysis:getSCXMLAtLevel($mba, 'l2')
-let $scc := tarjan:tarjanAlgorithm($scxml)
+let $state := $scxml//sc:state[@id='S7']
+let $scc := analysis:getSCCForRootNode($scxml, $state)
 
-return fn:for-each(map:keys($scc), function($k){map:get($scc, $k)})
+(:let $sccMap := tarjan:tarjanAlgorithm($scxml)
+let $allSCCs := fn:for-each(map:keys($sccMap), function($k){map:get($sccMap, $k)})
+:)
+
+let $prob := analysis:getTransitionProbabilityForTargetState($scxml, $state, (), (), (), true(), true())
+let $ctTotal := analysis:getTotalCycleTime($mba, 'l2', (), (), (), (), ())
+
+let $stateList := analysis:getStateList($mba, $level, (), $state, (), (), (), 'SE', ())
+
+return $stateList

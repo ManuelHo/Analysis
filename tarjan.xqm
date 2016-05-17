@@ -7,6 +7,7 @@ declare namespace xes = 'http://www.xes-standard.org/';
 import module namespace mba = 'http://www.dke.jku.at/MBA' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/mba.xqm';
 import module namespace sc = 'http://www.w3.org/2005/07/scxml' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/scxml.xqm';
 import module namespace functx = 'http://www.functx.com' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/functx.xqm';
+import module namespace analysis = 'http://www.dke.jku.at/MBA/Analysis' at 'C:/Users/manue/Masterarbeit/Analysis/analysis.xqm';
 
 (: returns map of scc's, loops are from first to last state in map entry :)
 declare function tarjan:tarjanAlgorithm($scxml as element()
@@ -31,7 +32,7 @@ declare function tarjan:tarjanAlgorithm($scxml as element()
                 'scc'
         )
 
-    return  (: no scc's which are only one state :)
+    return (: remove scc's which only consist of one state :)
         map:merge((
             for $s in 0 to (map:size($scc) - 1)
             let $item := map:get($scc, $s)
@@ -58,7 +59,7 @@ declare function tarjan:strongconnect($scxml as element(),
     let $index := $index + 1
 
     (: consider successors of $state :)
-    let $successors := $scxml//sc:state[@id = $scxml//sc:state[@id = $state/@id]/sc:transition/@target] (: ToDo: substates + only transitions leaving state :)
+    let $successors := analysis:getSuccessors($scxml, $state/@id) (: ToDo: test with substates :)
 
     let $recursiveResult :=
         fn:fold-left($successors,
@@ -108,7 +109,7 @@ declare function tarjan:strongconnect($scxml as element(),
     let $scc := map:merge(map:get($recursiveResult, 'scc'))
 
     return
-    (: if $lowlink = $index (i.e. root node), return SCC and pop from stack :)
+    (: if $lowlink = $index (i.e. $state is a root node), return SCC and pop from stack :)
         if (map:get($lowlinks, $state/@id) = map:get($indexes, $state/@id)) then
             let $map := tarjan:popStack($stack, (), $state)
             let $newStack := map:get($map, 'stack')

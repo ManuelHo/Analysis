@@ -1,0 +1,203 @@
+<mba
+	xmlns="http://www.dke.jku.at/MBA"
+	xmlns:sync="http://www.dke.jku.at/MBA/Synchronization"
+	xmlns:sc="http://www.w3.org/2005/07/scxml"
+	xmlns:mba="http://www.dke.jku.at/MBA"
+	name="MyReworkTest"
+	hierarchy="simple">
+	<topLevel name="l1">
+		<elements>
+			<sc:scxml name="L1">
+				<sc:datamodel>
+					<sc:data id="description">MBA to test tarjan algorithm</sc:data>
+					<sc:data id="_event"/>
+					<sc:data id="_x">
+						<db xmlns="">myMBAse</db>
+						<collection xmlns="">MyReworkTest</collection>
+						<mba xmlns="">MyReworkTest</mba>
+						<currentStatus xmlns="">
+							<state ref="SX"/>
+						</currentStatus>
+						<externalEventQueue xmlns=""/>
+						<xes:log xmlns:xes="http://www.xes-standard.org/">
+							<xes:trace>
+								<xes:event>
+									<xes:date key="time:timestamp" value="2016-01-01T10:00:00.000+02:00"/>
+									<xes:string key="sc:initial" value="L1"/>
+									<xes:string key="sc:target" value="SX"/>
+								</xes:event>
+							</xes:trace>
+						</xes:log>
+					</sc:data>
+				</sc:datamodel>
+				<sc:initial>
+					<sc:transition target="SX"/>
+				</sc:initial>
+				<sc:state id="SX">
+					<sc:transition event="tx" target="SY"/>
+				</sc:state>
+				<sc:state id="SY" mba:isArchiveState="true"/>
+			</sc:scxml>
+		</elements>
+		<childLevel name="l2">
+			<elements>
+				<sc:scxml name="L2">
+					<sc:datamodel>
+						<sc:data id="_event"/>
+						<sc:data id="_x">
+						</sc:data>
+					</sc:datamodel>
+					<sc:initial>
+						<sc:transition target="S1"/>
+					</sc:initial>
+					<sc:state id="S1">
+						<sc:transition event="t1.1" target="S2"/>
+						<sc:transition event="t1.2" target="S6"/>
+					</sc:state>
+					<sc:state id="S2">
+						<sc:transition event="t2" target="S3"/>
+					</sc:state>
+					<sc:state id="S3">
+						<sc:transition event="t3.1" target="S5"/>
+						<sc:transition event="t3.2" target="S4"/>
+					</sc:state>
+					<sc:state id="S4">
+						<sc:transition event="t4" target="S2"/>
+					</sc:state>
+					<sc:state id="S5">
+						<sc:transition event="t5" target="S7"/>
+					</sc:state>
+					<sc:state id="S6">
+						<sc:transition event="t6" target="S7"/>
+					</sc:state>
+					<sc:state id="S7">
+						<sc:transition event="t7" target="SE"/>
+					</sc:state>
+					<sc:state id="SE" mba:isArchiveState="true"/>
+				</sc:scxml>
+			</elements>
+			<childLevel/>
+		</childLevel>
+	</topLevel>
+	<concretizations>
+		<mba
+			xmlns="http://www.dke.jku.at/MBA"
+			xmlns:sync="http://www.dke.jku.at/MBA/Synchronization"
+			xmlns:sc="http://www.w3.org/2005/07/scxml"
+			name="MyReworkTestSub1"
+			hierarchy="simple">
+			<topLevel name="l2">
+				<elements>
+					<sc:scxml name="L2">
+						<sc:datamodel>
+							<sc:data id="description">sub MBA to test tarjan algorithm</sc:data>
+							<sc:data id="_event"/>
+							<sc:data id="_x">
+								<db xmlns="">myMBAse</db>
+								<collection xmlns="">MyReworkTest</collection>
+								<mba xmlns="">MyReworkTestSub1</mba>
+								<currentStatus xmlns="">
+									<state ref="SY"/>
+								</currentStatus>
+								<externalEventQueue xmlns=""/>
+								<xes:log xmlns:xes="http://www.xes-standard.org/">
+									<xes:trace>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T11:00:00.000+02:00"/>
+											<xes:string key="sc:initial" value="L2"/>
+											<xes:string key="sc:target" value="S1"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T11:10:00.000+02:00"/>
+											<xes:string key="sc:state" value="S1"/>
+											<xes:string key="concept:name" value="t1.1"/>
+											<xes:string key="sc:event" value="t1.1"/>
+											<xes:string key="sc:target" value="S2"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T11:20:00.000+02:00"/>
+											<xes:string key="sc:state" value="S2"/>
+											<xes:string key="concept:name" value="t2"/>
+											<xes:string key="sc:event" value="t2"/>
+											<xes:string key="sc:target" value="S3"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T11:30:00.000+02:00"/>
+											<xes:string key="sc:state" value="S3"/>
+											<xes:string key="concept:name" value="t3.2"/>
+											<xes:string key="sc:event" value="t3.2"/>
+											<xes:string key="sc:target" value="S4"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T11:40:00.000+02:00"/>
+											<xes:string key="sc:state" value="S4"/>
+											<xes:string key="concept:name" value="t4"/>
+											<xes:string key="sc:event" value="t4"/>
+											<xes:string key="sc:target" value="S2"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T11:50:00.000+02:00"/>
+											<xes:string key="sc:state" value="S2"/>
+											<xes:string key="concept:name" value="t2"/>
+											<xes:string key="sc:event" value="t2"/>
+											<xes:string key="sc:target" value="S3"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T12:00:00.000+02:00"/>
+											<xes:string key="sc:state" value="S3"/>
+											<xes:string key="concept:name" value="t3.1"/>
+											<xes:string key="sc:event" value="t3.1"/>
+											<xes:string key="sc:target" value="S5"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T12:10:00.000+02:00"/>
+											<xes:string key="sc:state" value="S5"/>
+											<xes:string key="concept:name" value="t5"/>
+											<xes:string key="sc:event" value="t5"/>
+											<xes:string key="sc:target" value="S7"/>
+										</xes:event>
+										<xes:event>
+											<xes:date key="time:timestamp" value="2016-01-01T12:20:00.000+02:00"/>
+											<xes:string key="sc:state" value="S7"/>
+											<xes:string key="concept:name" value="t7"/>
+											<xes:string key="sc:event" value="t7"/>
+											<xes:string key="sc:target" value="SE"/>
+										</xes:event>
+									</xes:trace>
+								</xes:log>
+							</sc:data>
+						</sc:datamodel>
+						<sc:initial>
+							<sc:transition target="S1"/>
+						</sc:initial>
+						<sc:state id="S1">
+							<sc:transition event="t1.1" target="S2"/>
+							<sc:transition event="t1.2" target="S6"/>
+						</sc:state>
+						<sc:state id="S2">
+							<sc:transition event="t2" target="S3"/>
+						</sc:state>
+						<sc:state id="S3">
+							<sc:transition event="t3.1" target="S5"/>
+							<sc:transition event="t3.2" target="S4"/>
+						</sc:state>
+						<sc:state id="S4">
+							<sc:transition event="t4" target="S2"/>
+						</sc:state>
+						<sc:state id="S5">
+							<sc:transition event="t5" target="S7"/>
+						</sc:state>
+						<sc:state id="S6">
+							<sc:transition event="t6" target="S7"/>
+						</sc:state>
+						<sc:state id="S7">
+							<sc:transition event="t7" target="SE"/>
+						</sc:state>
+						<sc:state id="SE" mba:isArchiveState="true"/>
+					</sc:scxml>
+				</elements>
+				<childLevel/>			
+			</topLevel>
+		</mba>
+	</concretizations>
+</mba>

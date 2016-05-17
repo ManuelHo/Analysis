@@ -106,9 +106,14 @@ declare function analysis:getStateList($mba as element(),
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
     (: this method assures that all transitions are considered, which lead to the given state :)
-    (: ToDo: problem with rework loops, not working at the moment :)
     let $transitions := analysis:getTransitionsToState($scxml, $state, true(), true())
 
+    (: ToDo: problem with rework loops, not working at the moment :)
+    (: Possible solution:
+        if $t is a rework loop, add it to a list (introduce param).
+        Follow rework.
+        If $t is in list, remove it from list and do investigate $t a second time
+    :)
     let $stateList :=
         for $t in $transitions
         let $source := sc:getSourceState($t)
@@ -122,7 +127,7 @@ declare function analysis:getStateList($mba as element(),
                     }
                 else ()
                 ,
-                analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState)(: next state, ToDo: only if @reworkStart=false :)
+                analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState)(: next state :)
             )
 
     return $stateList
@@ -223,12 +228,15 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
                         return
                             if (
                                 ($syncFunction = "$_everyDescendantAtLevelIsInState") or
+                                        ($syncFunction = "$_isDescendantAtLevelInState") or
                                         ($syncFunction = "$_someDescendantAtLevelIsInState")) then (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
                                 analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
-                            else if ($syncFunction = "$_ancestorAtLevelIsInState") then
+                            else if (
+                                ($syncFunction = "$_ancestorAtLevelIsInState") or
+                                        ($syncFunction = "$_isAncestorAtLevelInState")) then
                                 analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
                             else
-                                ()(: ToDo: implement other sync. functions. Else: () :)
+                                ()
                     else
                         () (: no cond --> no check needed for sync :)
                 ,
@@ -239,10 +247,10 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
                     ()
             )
         return
-            (:if((fn:compare($causes, '') != 0) and (fn:compare(fn:substring($causes, 1,3), '-->')!=0)) then
+        (:if((fn:compare($causes, '') != 0) and (fn:compare(fn:substring($causes, 1,3), '-->')!=0)) then
                 fn:concat('-->', $causes)
             else:)
-                $causes
+            $causes
 };
 
 (: to prevent errors, this function checks if the $mba contains a scxml-element for $syncLevel. If not, it replaces $mba with the ancestor at $syncLevel. :)
@@ -282,7 +290,7 @@ declare function analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba as
     (: check if @until of problematic state is shortly after( within 5 minutes) @from of preceding state at least ONCE :)
     return
         if ($syncCausingProblem = true()) then
-                analysis:getCauseOfProblematicSync($mba, $syncLevel, $syncState, $excludeArchiveStates, $threshold)
+            analysis:getCauseOfProblematicSync($mba, $syncLevel, $syncState, $excludeArchiveStates, $threshold)
         else
             ()(: time is totally different, $state is not delayed by sync :)
 };
@@ -303,7 +311,8 @@ declare function analysis:isSyncCausingProblem($mba as element(),
                 let $stateLog := analysis:getStateLog($descendant)
                 let $untilProblemState := $stateLog/state[@ref = $state/@id]/@until
                 let $fromTimeSyncState :=
-                    if($syncFunction = "$_ancestorAtLevelIsInState") then
+                    if (($syncFunction = "$_ancestorAtLevelIsInState") or
+                            ($syncFunction = "$_isAncestorAtLevelInState")) then
                         analysis:getFromTimeOfState(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId, $syncFunction)
                     else (: descendants :)
                         analysis:getFromTimeOfState($descendant, $syncLevel, $syncStateId, $syncFunction)
@@ -352,9 +361,11 @@ declare function analysis:getFromTimeOfState($mba as element(),
     return
         if ($syncFunction = "$_everyDescendantAtLevelIsInState") then
             max($fromTimes)
-        else if ($syncFunction = "$_someDescendantAtLevelIsInState") then
+        else if (($syncFunction = "$_someDescendantAtLevelIsInState") or
+                ($syncFunction = "$_isDescendantAtLevelInState")) then
             min($fromTimes)
-        else if ($syncFunction = "$_ancestorAtLevelIsInState") then
+        else if (($syncFunction = "$_ancestorAtLevelIsInState") or
+                    ($syncFunction = "$_isAncestorAtLevelInState")) then
                 min($fromTimes) (: just to be safe. If there is a loop and $state is more than one time in $stateLog, take first occurence :)
             else
                 ()
@@ -545,7 +556,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
             Formula: 1/(1-transProb)
         :)
         return fn:sum(
-                for $transition in $transitions(: ToDo: [@rework="false"]? :)
+                for $transition in $transitions (: ToDo: [@rework="false"]? :)
                 let $source := sc:getSourceState($transition)
                 return
                     (
@@ -558,7 +569,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                                 * analysis:getTransitionProbabilityForTargetState($scxml, $source, $changedTransitions, $changedTransitionsFactors, $toState, true(), true()))
                 ,
                 0
-        ) (: ToDo: * transitions[@rework]? :)
+        )(: ToDo: * transitions[@rework]? :)
 };
 
 (: returns true if a $transition is in a sequence of $changedTransitions, based on node identity :)
@@ -856,8 +867,8 @@ declare function analysis:getStateLogToState($mba as element(),
 declare function analysis:getSCXMLAtLevel($mba as element(),
         $level as xs:string
 ) as element()* {
-        ($mba/mba:topLevel[@name = $level])/mba:elements/sc:scxml |
-                ($mba//mba:childLevel[@name = $level])[1]/mba:elements/sc:scxml
+    ($mba/mba:topLevel[@name = $level])/mba:elements/sc:scxml |
+            ($mba//mba:childLevel[@name = $level])[1]/mba:elements/sc:scxml
 };
 
 (: returns descendants which have been in $toState :)

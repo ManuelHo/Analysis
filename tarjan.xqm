@@ -8,23 +8,39 @@ import module namespace mba = 'http://www.dke.jku.at/MBA' at 'C:/Users/manue/Mas
 import module namespace sc = 'http://www.w3.org/2005/07/scxml' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/scxml.xqm';
 import module namespace functx = 'http://www.functx.com' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/functx.xqm';
 
+(: returns map of scc's, loops are from first to last state in map entry :)
 declare function tarjan:tarjanAlgorithm($scxml as element()
 ) as map(*) {
-    fn:fold-left($scxml/sc:state, (: ToDo: all states of SCXML :)
-            tarjan:createMap(0, (), (), (), ()),
-            function($result, $state) {
-                let $index := map:get($result, 'index')
-                let $indexes := map:merge(map:get($result, 'indexes'))
-                let $lowlinks := map:merge(map:get($result, 'lowlinks'))
-                let $stack := map:get($result, 'stack')
-                let $scc := map:get($result, 'scc')
+    let $scc :=
+        map:get(
+                fn:fold-left($scxml//(sc:state | sc:parallel | sc:final),
+                        tarjan:createMap(0, (), (), (), ()),
+                        function($result, $state) {
+                            let $index := map:get($result, 'index')
+                            let $indexes := map:merge(map:get($result, 'indexes'))
+                            let $lowlinks := map:merge(map:get($result, 'lowlinks'))
+                            let $stack := map:get($result, 'stack')
+                            let $scc := map:get($result, 'scc')
 
-                return
-                    if (tarjan:notVisited($indexes, $state/@id)) then
-                        tarjan:strongconnect($scxml, $state, $result)
-                    else
-                        $result
-            })
+                            return
+                                if (tarjan:notVisited($indexes, $state/@id)) then
+                                    tarjan:strongconnect($scxml, $state, $result)
+                                else
+                                    $result
+                        }),
+                'scc'
+        )
+
+    return  (: no scc's which are only one state :)
+        map:merge((
+            for $s in 0 to (map:size($scc) - 1)
+            let $item := map:get($scc, $s)
+            return
+                if (fn:count($item) > 1) then
+                    map:entry($s, $item)
+                else
+                    ()
+        ))
 };
 
 declare function tarjan:strongconnect($scxml as element(),

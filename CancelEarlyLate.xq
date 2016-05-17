@@ -36,7 +36,7 @@ let $distinct :=
 )
 
 return (:analysis:getCycleTimeForCompositeState($mbaPrivate1, 'rental', 'Archived', $state, (), ()):)
-analysis:getTotalCycleTimeToState($mbaPrivate1, 'rental', 'Archived', 'Archived', ())
+analysis:getTotalCycleTimeToState($mbaPrivate1, 'rental', 'Archived', 'Archived', (), (), ())
 
 
 

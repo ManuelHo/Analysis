@@ -134,7 +134,7 @@ declare function analysis:getStateList($mba as element(),
                     if (not(functx:is-node-in-sequence(sc:getSourceState($t), $scc))) then (: source of target not in scc :)
                         analysis:getStateList($mba, $level, $inState, sc:getSourceState($t), $changedStates, $changedTransitions, $changedTransitionsFactors, $toState, $sccRootNodes)
                     else
-                        (: enter loop :)
+                    (: enter loop :)
                         let $sccRootNodes := ($sccRootNodes, analysis:getRootNodeOfSCC($scc)) (: add root node to $sccRootNodes :)
                         return
                             analysis:getStateList($mba, $level, $inState, sc:getSourceState($t), $changedStates, $changedTransitions, $changedTransitionsFactors, $toState, $sccRootNodes)
@@ -292,11 +292,9 @@ declare function analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba as
     let $syncSCXML := analysis:getSCXMLAtLevel($mba, $syncLevel)
     let $syncState := $syncSCXML//(sc:state | sc:parallel | sc:final)[@id = $syncStateId]
 
-    let $syncCausingProblem := analysis:isSyncCausingProblem($mba, $level, $state, $syncFunction, $syncLevel, $syncStateId)
-
     (: check if @until of problematic state is shortly after( within 5 minutes) @from of preceding state at least ONCE :)
     return
-        if ($syncCausingProblem = true()) then
+        if (analysis:isSyncCausingProblem($mba, $level, $state, $syncFunction, $syncLevel, $syncStateId) = true()) then
             analysis:getCauseOfProblematicSync($mba, $syncLevel, $syncState, $excludeArchiveStates, $threshold)
         else
             ()(: time is totally different, $state is not delayed by sync :)
@@ -317,23 +315,21 @@ declare function analysis:isSyncCausingProblem($mba as element(),
                 for $descendant in $descendants (: level of the problematic state itself :)
                 let $stateLog := analysis:getStateLog($descendant)
                 let $untilProblemState := $stateLog/state[@ref = $state/@id]/@until
-                let $fromTimeSyncState :=   (: @from time(s) of sync level :)
+                let $fromTimeSyncState := (: @from time(s) of sync level :)
                     if (($syncFunction = "$_ancestorAtLevelIsInState") or
                             ($syncFunction = "$_isAncestorAtLevelInState")) then
                         analysis:getFromTimeOfState(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId, $syncFunction)
                     else if ($syncFunction = "$_isDescendantAtLevelInState") then
+                    (: descendant has to be in $syncState to trigger transition: all syncDescendants have to be checked :)
                         analysis:getAllFromTimes($descendant, $syncLevel, $syncStateId)
                     else (: descendants :)
                         analysis:getFromTimeOfState($descendant, $syncLevel, $syncStateId, $syncFunction)
                 return
                     if (fn:empty($untilProblemState) or fn:empty($fromTimeSyncState)) then
                         false()
-                    else if($syncFunction = "$_isDescendantAtLevelInState") then
-                        (: descendant has to be in $syncState to trigger transition: all syncDescendants have to be checked :)
+                    else
                         for $syncTime in $fromTimeSyncState
                         return analysis:timesAreSame($untilProblemState, $syncTime)
-                    else
-                        analysis:timesAreSame($untilProblemState, $fromTimeSyncState)
         )
 };
 

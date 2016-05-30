@@ -46,7 +46,7 @@
 									<xes:string key="concept:name" value="t2"/>
 									<xes:string key="sc:event" value="t2"/>
 									<xes:string key="sc:target" value="S3"/>
-									<xes:string key="sc:cond" value="$_everyDescendantAtLevelIsInState('l2', 'SY')"/>
+									<xes:string key="sc:cond" value="$_isDescendantAtLevelInState('l2', 'SY')"/>
 								</xes:event>
 								<xes:event>
 									<xes:date key="time:timestamp" value="2016-01-01T12:30:00.000+02:00"/>
@@ -70,7 +70,7 @@
 						<sc:transition event="t2.1" target="S2.2"/>
 					</sc:state>
 					<sc:state id="S2.2">
-						<sc:transition event="t2" cond="$_everyDescendantAtLevelIsInState('l2', 'SY')" target="S3"/>
+						<sc:transition event="t2" cond="$_isDescendantAtLevelInState('l2', 'SY')" target="S3"/>
 					</sc:state>
 				</sc:state>
 				<sc:state id="S3">
@@ -98,7 +98,7 @@
 						<sc:transition event="tx.1" target="SY"/>
 					</sc:state>
 					<sc:state id="SX.2">
-						<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+						<sc:transition event="tx.2" cond="$_isDescendantAtLevelInState('l3', 'J')" target="SY"/>
 					</sc:state>
 					<sc:state id="SY" mba:isArchiveState="true"/>
 				</sc:scxml>
@@ -180,7 +180,7 @@
 							<sc:transition event="tx.1" target="SY"/>
 						</sc:state>
 						<sc:state id="SX.2">
-							<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+							<sc:transition event="tx.2" cond="$_isDescendantAtLevelInState('l3', 'J')" target="SY"/>
 						</sc:state>
 						<sc:state id="SY" mba:isArchiveState="true"/>
 					</sc:scxml>
@@ -243,7 +243,7 @@
 											<xes:date key="time:timestamp" value="2016-01-01T12:10:00.000+02:00"/>
 											<xes:string key="sc:state" value="SX.2"/>
 											<xes:string key="concept:name" value="tx.2"/>
-											<xes:string key="sc:cond" value="$_everyDescendantAtLevelIsInState('l3', 'J')"/>
+											<xes:string key="sc:cond" value="$_isDescendantAtLevelInState('l3', 'J')"/>
 											<xes:string key="sc:event" value="tx.2"/>
 											<xes:string key="sc:target" value="SY"/>
 										</xes:event>
@@ -262,7 +262,7 @@
 							<sc:transition event="tx.1" target="SY"/>
 						</sc:state>
 						<sc:state id="SX.2">
-							<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+							<sc:transition event="tx.2" cond="$_isDescendantAtLevelInState('l3', 'J')" target="SY"/>
 						</sc:state>
 						<sc:state id="SY" mba:isArchiveState="true"/>
 					</sc:scxml>
@@ -325,7 +325,7 @@
 											<xes:date key="time:timestamp" value="2016-01-01T12:09:00.000+02:00"/>
 											<xes:string key="sc:state" value="SX.2"/>
 											<xes:string key="concept:name" value="tx.2"/>
-											<xes:string key="sc:cond" value="$_everyDescendantAtLevelIsInState('l3', 'J')"/>
+											<xes:string key="sc:cond" value="$_isDescendantAtLevelInState('l3', 'J')"/>
 											<xes:string key="sc:event" value="tx.2"/>
 											<xes:string key="sc:target" value="SY"/>
 										</xes:event>
@@ -344,7 +344,7 @@
 							<sc:transition event="tx.1" target="SY"/>
 						</sc:state>
 						<sc:state id="SX.2">
-							<sc:transition event="tx.2" cond="$_everyDescendantAtLevelIsInState('l3', 'J')" target="SY"/>
+							<sc:transition event="tx.2" cond="$_isDescendantAtLevelInState('l3', 'J')" target="SY"/>
 						</sc:state>
 						<sc:state id="SY" mba:isArchiveState="true"/>
 					</sc:scxml>

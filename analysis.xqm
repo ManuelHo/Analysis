@@ -314,18 +314,24 @@ declare function analysis:isSyncCausingProblem($mba as element(),
         functx:is-value-in-sequence(
                 true()
                 ,
-                for $descendant in $descendants
+                for $descendant in $descendants (: level of the problematic state itself :)
                 let $stateLog := analysis:getStateLog($descendant)
                 let $untilProblemState := $stateLog/state[@ref = $state/@id]/@until
-                let $fromTimeSyncState :=
+                let $fromTimeSyncState :=   (: @from time(s) of sync level :)
                     if (($syncFunction = "$_ancestorAtLevelIsInState") or
                             ($syncFunction = "$_isAncestorAtLevelInState")) then
                         analysis:getFromTimeOfState(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId, $syncFunction)
+                    else if ($syncFunction = "$_isDescendantAtLevelInState") then
+                        analysis:getAllFromTimes($descendant, $syncLevel, $syncStateId)
                     else (: descendants :)
                         analysis:getFromTimeOfState($descendant, $syncLevel, $syncStateId, $syncFunction)
                 return
                     if (fn:empty($untilProblemState) or fn:empty($fromTimeSyncState)) then
                         false()
+                    else if($syncFunction = "$_isDescendantAtLevelInState") then
+                        (: descendant has to be in $syncState to trigger transition: all syncDescendants have to be checked :)
+                        for $syncTime in $fromTimeSyncState
+                        return analysis:timesAreSame($untilProblemState, $syncTime)
                     else
                         analysis:timesAreSame($untilProblemState, $fromTimeSyncState)
         )
@@ -368,8 +374,7 @@ declare function analysis:getFromTimeOfState($mba as element(),
     return
         if ($syncFunction = "$_everyDescendantAtLevelIsInState") then
             max($fromTimes)
-        else if (($syncFunction = "$_someDescendantAtLevelIsInState") or
-                ($syncFunction = "$_isDescendantAtLevelInState")) then
+        else if ($syncFunction = "$_someDescendantAtLevelIsInState") then
             min($fromTimes)
         else if (($syncFunction = "$_ancestorAtLevelIsInState") or
                     ($syncFunction = "$_isAncestorAtLevelInState")) then

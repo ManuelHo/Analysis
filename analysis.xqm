@@ -404,7 +404,7 @@ declare function analysis:getCausesOfProblematicSubstates($mba as element(),
             return
                 <state id="{fn:string($sub/@id)}">
                     {
-                        analysis:getCausesOfProblematicState($mba, $level, $sub, (), $excludeArchiveStates, $threshold, $problematicStates, false())
+                        analysis:getCausesOfProblematicState($mba, $level, $sub, $inState, $excludeArchiveStates, $threshold, $problematicStates, false())
                     }
                 </state>
         else
@@ -601,7 +601,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
 declare function analysis:getSCCForRootNode($scxml as element(),
         $state as element()
 ) as element()* {
-    let $sccMap := tarjan:tarjanAlgorithm($scxml)
+    let $sccMap := analysis:tarjanAlgorithm($scxml)
     let $scc := fn:for-each(
             map:keys($sccMap),
             function($k){
@@ -702,18 +702,6 @@ declare function analysis:getTransitionProbability($transition as element(),
             fn:count($prob[@tookTransition = 'true' and @leftState = 'true']) div fn:count($prob[@leftState = 'true'])
         else
             0
-};
-
-declare function analysis:getSuccessors($scxml as element(),
-        $state as xs:string
-) as element()* {
-    $scxml//(sc:state | sc:parallel | sc:final)[@id = analysis:getTransitionsLeavingState($scxml, $state)/@target]
-};
-
-declare function analysis:getTransitionsLeavingState($scxml as element(),
-        $state as xs:string
-) as element()* {
-    $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]//sc:transition[analysis:stateIsLeft(., $state)]
 };
 
 declare function analysis:stateIsLeft($transition as element(),
@@ -910,8 +898,6 @@ declare function analysis:compareEvents($origEvent as xs:string,
                     (fn:compare('.', fn:substring($newEvent, fn:string-length($origEvent) + 1, 1)) = 0))
 };
 
-(: Helper :)
-
 declare function analysis:getTransitionsForLogEntry($scxml as element(),
         $event as element()
 ) as element() {
@@ -1031,4 +1017,174 @@ declare function analysis:parseStateId($cond as xs:string
 declare function analysis:getCreationTime($mba as element()
 ) as xs:dateTime {
     xs:dateTime(analysis:getStateLog($mba)/state/@from[1])
+};
+
+(: ### Tarjan Algorithm ### :)
+(: returns map of scc's, loops are from first to last state in map entry :)
+declare function analysis:tarjanAlgorithm($scxml as element()
+) as map(*) {
+    let $scc :=
+        map:get(
+                fn:fold-left($scxml//(sc:state | sc:parallel | sc:final),
+                        analysis:createMap(0, (), (), (), ()),
+                        function($result, $state) {
+                            let $index := map:get($result, 'index')
+                            let $indexes := map:merge(map:get($result, 'indexes'))
+                            let $lowlinks := map:merge(map:get($result, 'lowlinks'))
+                            let $stack := map:get($result, 'stack')
+                            let $scc := map:get($result, 'scc')
+
+                            return
+                                if (analysis:notVisited($indexes, $state/@id)) then
+                                    analysis:strongconnect($scxml, $state, $result)
+                                else
+                                    $result
+                        }),
+                'scc'
+        )
+
+    return (: remove scc's which only consist of one state :)
+        map:merge((
+            for $s in 0 to (map:size($scc) - 1)
+            let $item := map:get($scc, $s)
+            return
+                if (fn:count($item) > 1) then
+                    map:entry($s, $item)
+                else
+                    ()
+        ))
+};
+
+declare function analysis:strongconnect($scxml as element(),
+        $state as element(),
+        $resultMap as map(*)
+) as map(*) {
+    let $index := map:get($resultMap, 'index') (: next index :)
+    let $indexes := map:merge((map:get($resultMap, 'indexes'), map:entry($state/@id, $index)))
+    let $lowlink := $index
+    let $lowlinks := map:merge(((map:get($resultMap, 'lowlinks'), map:entry($state/@id, $lowlink))))
+
+    let $stack := (map:get($resultMap, 'stack'), $state) (: push :)
+    let $scc := map:get($resultMap, 'scc')
+
+    let $index := $index + 1
+
+    (: consider successors of $state :)
+    let $successors := analysis:getSuccessors($scxml, $state/@id)
+
+    let $recursiveResult :=
+        fn:fold-left($successors,
+                analysis:createMap($index, $indexes, $lowlinks, $stack, $scc),
+                function($result, $successor) {
+                    if (analysis:notVisited($indexes, $successor/@id)) then
+                    (: $successor has not yet been visited; recurse on it :)
+                        let $sucResult := analysis:strongconnect($scxml, $successor, $result)
+                        (: min($state.lowlink, $successor.lowlink) :)
+                        let $lowlinks := map:get($sucResult, 'lowlinks')
+                        let $lowlink := min((
+                            map:get($lowlinks, $state/@id),
+                            map:get($lowlinks, $successor/@id)
+                        ))
+                        return
+                            analysis:createMap(map:get($sucResult, 'index'),
+                                    map:get($sucResult, 'indexes'),
+                                    map:merge((($lowlinks, map:entry($state/@id, $lowlink)))),
+                                    map:get($sucResult, 'stack'),
+                                    map:get($sucResult, 'scc')
+                            )
+                    else if (analysis:onStack($stack, $successor)) then
+                    (: $successor is in stack and hence in the current SCC :)
+                        let $indexes := map:get($result, 'indexes')
+                        let $lowlinks := map:get($result, 'lowlinks')
+                        let $lowlink := min((
+                            map:get($lowlinks, $state/@id),
+                            map:get($indexes, $successor/@id)
+                        ))
+                        return
+                            analysis:createMap(
+                                    map:get($result, 'index'),
+                                    map:get($result, 'indexes'),
+                                    map:merge((($lowlinks, map:entry($state/@id, $lowlink)))),
+                                    map:get($result, 'stack'),
+                                    map:get($result, 'scc')
+                            )
+                    else
+                        $result
+                }
+        )
+
+    let $index := map:get($recursiveResult, 'index')
+    let $indexes := map:get($recursiveResult, 'indexes')
+    let $lowlinks := map:get($recursiveResult, 'lowlinks')
+    let $stack := map:get($recursiveResult, 'stack')
+    let $scc := map:merge(map:get($recursiveResult, 'scc'))
+
+    return
+    (: if $lowlink = $index (i.e. $state is a root node), return SCC and pop from stack :)
+        if (map:get($lowlinks, $state/@id) = map:get($indexes, $state/@id)) then
+            let $map := analysis:popStack($stack, (), $state)
+            let $newStack := map:get($map, 'stack')
+            let $newScc := map:get($map, 'scc')
+            return
+                analysis:createMap($index, $indexes, $lowlinks, $newStack, map:merge(($scc, map:entry(map:size($scc), $newScc))))
+        else
+            analysis:createMap($index, $indexes, $lowlinks, $stack, $scc)
+};
+
+declare function analysis:createMap($index as xs:integer, (: global index :)
+        $indexes as map(*)?, (: mapping of state to index :)
+        $lowlinks as map(*)?, (: mapping of state to lowlinks :)
+        $stack as element()*, (: sequence which simulates stack :)
+        $scc as map(*)?(: strongly connected components :)
+) as map(*) {
+    map:merge((
+        map:entry('index', $index),
+        map:entry('indexes', $indexes),
+        map:entry('lowlinks', $lowlinks),
+        map:entry('stack', $stack),
+        map:entry('scc', $scc)
+    ))
+};
+
+declare function analysis:notVisited($indexes as map(*),
+        $state as xs:string
+) as xs:boolean {
+    fn:empty(map:get($indexes, $state))
+};
+
+declare function analysis:onStack($stack as element()*,
+        $state as element()
+) as xs:boolean {
+    functx:is-node-in-sequence($state, $stack)
+};
+
+declare function analysis:popStack($stack as element()*,
+        $scc as element()*,
+        $state as element()
+) as map(*) {
+(: pop until $stack.pop = $state :)
+    let $s := $stack[last()]
+    let $stack := $stack[position() != last()]
+    let $scc := ($scc, $s)
+
+    return
+        if ($s is $state) then
+            map:merge((
+                map:entry('stack', $stack),
+                map:entry('scc', $scc)
+            ))
+        else
+            analysis:popStack($stack, $scc, $state)
+};
+
+declare function analysis:getSuccessors($scxml as element(),
+        $state as xs:string
+) as element()* {
+    $scxml//(sc:state | sc:parallel | sc:final)[@id = analysis:getTransitionsLeavingState($scxml, $state)/@target]
+};
+
+declare function analysis:getTransitionsLeavingState($scxml as element(),
+        $state as xs:string
+) as element()* {
+    $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]//sc:transition[analysis:stateIsLeft(., $state)]
 };

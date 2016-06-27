@@ -84,4 +84,7 @@ let $m := map:get(map:get($map, 1), 1)
 
 let $x := "-->[I],[SW]"
 
-return <state ref="{$string}"></state>
+let $a := <a></a>
+let $a := ($a, $a)
+
+return $a

@@ -11,7 +11,7 @@ import module namespace tarjan = 'http://www.dke.jku.at/MBA/Tarjan' at 'C:/Users
 declare function analysis:getTotalActualCycleTime($mba as element(),
         $level as xs:string,
         $toState as xs:string?
-) as xs:duration {
+) as xs:duration? {
     let $descendants := (: if the topLevel is $level, analyze $mba :)
         analysis:getDescendantsAtLevelOrMBA($mba, $level, $toState)
 
@@ -26,12 +26,12 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
 (: as time between start and end :)
 declare function analysis:getCycleTimeOfInstance($mba as element(),
         $toState as xs:string?
-) as xs:duration {
+) as xs:duration? {
     let $stateLog := analysis:getStateLogToState($mba, $toState)/state
 
     let $cycleTimeOfInstance :=
         (if ($stateLog[last()]/@until) then
-            xs:dateTime($stateLog[last()]/@until)
+            xs:dateTime($stateLog[last()]/@from)
         else
             fn:current-dateTime()
         ) - xs:dateTime(($stateLog/@from)[1])
@@ -43,7 +43,7 @@ declare function analysis:getTotalCycleTime($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
-        $changedStates as element()*,
+        $changedStates as element()?,
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*
 ) as xs:duration {
@@ -63,7 +63,7 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $toState as xs:string,
-        $changedStates as element()*,
+        $changedStates as element()?,
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*
 ) as xs:duration {
@@ -99,7 +99,7 @@ declare function analysis:getStateList($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $state as element(),
-        $changedStates as element()*,
+        $changedStates as element()?,
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*,
         $toState as xs:string,
@@ -306,7 +306,7 @@ declare function analysis:isSyncCausingProblem($mba as element(),
         $syncFunction as xs:string,
         $syncLevel as xs:string,
         $syncStateId as xs:string
-) {
+) as xs:boolean {
     let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
     return (: for each descendant check if there is a problem with this sync :)
         functx:is-value-in-sequence(
@@ -427,7 +427,7 @@ declare function analysis:stateIsInitialOfSCXML($state as element()
 (: $time1 has to be AFTER $time2 :)
 declare function analysis:timesAreSame($time1 as xs:dateTime,
         $time2 as xs:dateTime
-) {
+) as xs:boolean {
     if (($time2 <= $time1) and ($time1 - $time2 <= xs:dayTimeDuration("PT5M"))) then
         true()
     else
@@ -438,11 +438,11 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $state as element(),
-        $changedStates as element()*,
+        $changedStates as element()?,
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*,
         $toState as xs:string?
-) (:as xs:duration?:) {
+) as xs:duration? {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
     return
@@ -459,7 +459,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                 else
                     fn:sum($cycleTimes)
         else
-            analysis:getAverageCycleTime($mba, $level, $inState, $state/@id, $toState) *
+            analysis:getAverageCycleTime($mba, $level, $inState, $state/@id(:, $toState:)) *
                     analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, $toState, true(), true()) *
                     (
                         if ($state/@id = $changedStates/state/@id) then
@@ -544,7 +544,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
         $toState as xs:string?,
         $includeSubstates as xs:boolean,
         $checkParallel as xs:boolean(: ## Workaround to avoid stackoverflow when initial is nested in child of parallel ## :)
-) (:as xs:decimal:) {
+) as xs:decimal {
 (:let $transitions := $scxml//sc:transition[@target=$state/@id]:)
     if (
         (fn:compare(fn:name($state), 'sc:initial') = 0) and
@@ -620,7 +620,7 @@ declare function analysis:getSCCForRootNode($scxml as element(),
 declare function analysis:getProbabilityForRootNode($scxml as element(),
         $scc as element()*,
         $toState as xs:string?
-) {
+) as xs:decimal {
     let $r :=
         fn:sum(
                 for $t in analysis:getTransitionsToState($scxml, analysis:getRootNodeOfSCC($scc), true(), true())
@@ -639,7 +639,7 @@ declare function analysis:getR($scxml as element(),
         $scc as element()*,
         $toState as xs:string?,
         $state as element()
-) {
+) as xs:decimal {
     if ($state is analysis:getRootNodeOfSCC($scc)) then
         1
     else
@@ -770,19 +770,18 @@ declare function analysis:compareTransitions($origTransition as element(),
 };
 
 (: returns average cycle time of a state :)
-(: $toState: include only decendents which have been/are in $toState :)
 declare function analysis:getAverageCycleTime($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
-        $stateId as xs:string,
-        $toState as xs:string?
+        $stateId as xs:string(:,
+        $toState as xs:string?:)
 ) as xs:duration? {
     let $descendants := (: if the topLevel is $level, analyze $mba :)
         (
             if ($mba/mba:topLevel[@name = $level]) then
                 $mba
             else
-                analysis:getDescendantsAtLevel($mba, $level, $toState)
+                mba:getDescendantsAtLevel($mba, $level)
         )[if ($inState) then mba:isInState(., $inState) else true()]
 
     let $cycleTimes :=
@@ -803,9 +802,8 @@ declare function analysis:getAverageCycleTime($mba as element(),
 (: returns total cycle time an instance was in given states :)
 (: $states must not be substates of each other! :)
 declare function analysis:getTotalCycleTimeInStates($mba as element(),
-        $level as xs:string,
         $states as xs:string*
-) as xs:duration {
+) as xs:duration? {
     let $stateLog := analysis:getStateLog($mba)
 
     return fn:sum(
@@ -885,7 +883,7 @@ declare function analysis:getParentStates($scxml as element(),
 
 declare function analysis:compareConditions($origCond as xs:string,
         $newCond as xs:string
-) {
+) as xs:boolean {
     (fn:compare($origCond, $newCond) = 0) or
             ((fn:compare($origCond, fn:substring($newCond, 1, fn:string-length($origCond))) = 0) and
                     (fn:compare(' and ', fn:substring($newCond, fn:string-length($origCond) + 1, 5)) = 0))
@@ -936,7 +934,7 @@ declare function analysis:getStateLogToState($mba as element(),
     let $stateLog := analysis:getStateLog($mba)
     return
         if ($toState) then
-            element {fn:node-name($stateLog)} {$stateLog/state[@ref = $toState]/preceding-sibling::state}
+            element {fn:node-name($stateLog)} {$stateLog/state[@ref = $toState]/(self::state | preceding-sibling::state)}
         else
             $stateLog
 };

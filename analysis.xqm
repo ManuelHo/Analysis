@@ -30,7 +30,7 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
     let $stateLog := analysis:getStateLogToState($mba, $toState)/state
 
     let $cycleTimeOfInstance :=
-        (if ($stateLog[last()]/@until) then
+        (if ($toState or $stateLog[last()]/@until) then
             xs:dateTime($stateLog[last()]/@from)
         else
             fn:current-dateTime()

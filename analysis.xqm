@@ -693,7 +693,7 @@ declare function analysis:getTransitionProbability($transition as element()(:,
             <log leftState='true' tookTransition='true'/> (: probability: 1 :)
         else
             for $descendant in $descendants
-            let $log := mba:getSCXML($descendant)/sc:datamodel/sc:data[@id = "_x"]/xes:log
+            let $log := analysis:getEventLog(mba:getSCXML($descendant))
             return
                 for $event in $log/xes:trace/xes:event
                 let $transitionEvent := analysis:getTransitionsForLogEntry(mba:getSCXML($descendant), $event)
@@ -816,7 +816,7 @@ declare function analysis:getTotalCycleTimeInStates($mba as element(),
 declare function analysis:getStateLog($mba as element()
 ) as element() {
     let $scxml := mba:getSCXML($mba)
-    let $log := $scxml/sc:datamodel/sc:data[@id = "_x"]/xes:log
+    let $log := analysis:getEventLog($scxml)
 
     (: get all events :)
     let $events := for $event in $log/xes:trace/xes:event
@@ -864,6 +864,11 @@ declare function analysis:getStateLog($mba as element()
     ) (: closing bracket fn:fold-left :)
 
     return <stateLog>{map:get($stateLog, 'stateLog')}</stateLog>
+};
+
+declare function analysis:getEventLog($scxml as element()
+) as element() {
+    $scxml/sc:datamodel/sc:data[@id = "_x"]/xes:log
 };
 
 declare function analysis:getStateAndSubstates($scxml as element(),

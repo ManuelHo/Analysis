@@ -456,7 +456,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                 return
                     analysis:getCycleTimeForCompositeState($mba, $level, $inState, $substate, $changedStates, $changedTransitions, $changedTransitionsFactors(:, $toState:))
             return
-                if (fn:compare(fn:name($state), 'sc:parallel') = 0) then
+                if (analysis:isParallel($state)) then
                     max($cycleTimes)
                 else
                     fn:sum($cycleTimes)
@@ -473,6 +473,12 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                         else (: not changed :)
                             1
                     )
+};
+
+declare function analysis:isParallel(
+        $state as element()
+) as xs:boolean {
+    fn:compare(fn:name($state), 'sc:parallel') = 0
 };
 
 (: gets all transitions which result in entering $state :)

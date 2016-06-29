@@ -205,7 +205,7 @@ declare function analysis:getCausesOfProblematicStates(
             </state>
 };
 
-(: checks what is causing $state to be problematic :)
+(: checks what is causing $state to be problematic  :)
 (: $checkSynchronizedProcess: if true(), function was called from a path of a synchronized process. ProblematicStates in synchronized processes are causing delays the parallel process :)
 (:
     $inState is only used for $level of first call (from user - $inState is null if function is called for another level)

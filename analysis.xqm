@@ -205,7 +205,7 @@ declare function analysis:getCausesOfProblematicStates(
             </state>
 };
 
-(: checks what is causing $state to be problematic  :)
+(: checks what is causing $state to be problematic :)
 (: $checkSynchronizedProcess: if true(), function was called from a path of a synchronized process. ProblematicStates in synchronized processes are causing delays the parallel process :)
 (:
     $inState is only used for $level of first call (from user - $inState is null if function is called for another level)
@@ -309,7 +309,7 @@ declare function analysis:isSyncCausingProblem($mba as element(),
         $syncLevel as xs:string,
         $syncStateId as xs:string
 ) as xs:boolean {
-    let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
+    let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level)
     return (: for each descendant check if there is a problem with this sync :)
         functx:is-value-in-sequence(
                 true()
@@ -386,7 +386,7 @@ declare function analysis:getAllFromTimes($mba as element(),
         $level as xs:string,
         $state as xs:string
 ) as xs:dateTime* {
-    for $descendant in analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
+    for $descendant in analysis:getDescendantsAtLevelOrMBA($mba, $level)
     let $subStateLog := analysis:getStateLog($descendant)
     return xs:dateTime($subStateLog/state[@ref = $state]/@from)
 };
@@ -775,16 +775,11 @@ declare function analysis:compareTransitions($origTransition as element(),
 declare function analysis:getAverageCycleTime($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
-        $stateId as xs:string(:,
-        $toState as xs:string?:)
+        $stateId as xs:string
 ) as xs:duration? {
     let $descendants := (: if the topLevel is $level, analyze $mba :)
-        (
-            if ($mba/mba:topLevel[@name = $level]) then
-                $mba
-            else
-                mba:getDescendantsAtLevel($mba, $level)
-        )[if ($inState) then mba:isInState(., $inState) else true()]
+        analysis:getDescendantsAtLevelOrMBA($mba, $level)
+        [if ($inState) then mba:isInState(., $inState) else true()]
 
     let $cycleTimes :=
         for $descendant in $descendants
@@ -994,6 +989,12 @@ declare function analysis:getDescendantsAtLevelOrMBA($mba as element(),
         $mba
     else
         analysis:getDescendantsAtLevel($mba, $level, $toState)
+};
+
+declare function analysis:getDescendantsAtLevelOrMBA($mba as element(),
+        $level as xs:string
+) as element()* {
+    analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
 };
 
 (: for parsing function name out of transition condition :)

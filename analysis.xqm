@@ -73,7 +73,7 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
 
     let $state := $scxml//*[@id = $toState]
 
-    let $transitions := analysis:getTransitionsToState($scxml, $state, true(), true())
+    let $transitions := analysis:getTransitionsToState($scxml, $state)
 
     let $stateList := functx:distinct-deep(
             for $t in $transitions
@@ -130,7 +130,7 @@ declare function analysis:getStateList($mba as element(),
                 }
             else ()
             ,
-            for $t in analysis:getTransitionsToState($scxml, $state, true(), true())
+            for $t in analysis:getTransitionsToState($scxml, $state)
             return
                 if (not(functx:is-node-in-sequence(sc:getSourceState($t), $sccRootNodes))) then (: source of transition is not in seq. $sccRootNodes :)
                     if (not(functx:is-node-in-sequence(sc:getSourceState($t), $scc))) then (: source of target not in scc :)
@@ -345,7 +345,7 @@ declare function analysis:getCauseOfProblematicSync($mba as element(),
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
     let $syncProblematicStates := analysis:getProblematicStates($mba, $level, (), $excludeArchiveStates, $threshold)
     (: "$_everyDescendantAtLevelIsInState"/"$_someDescendantAtLevelIsInState"/"$_ancestorAtLevelIsInState": $state depends on preceding states of syncState  :)
-    let $precedingStates := analysis:getTransitionsToState($scxml, $state, true(), true())/..
+    let $precedingStates := analysis:getTransitionsToState($scxml, $state)/..
     return
         if ($precedingStates/@id = $syncProblematicStates/@id) then (: at least one $precedingState is problematic :)
             for $prec in $precedingStates[@id = $syncProblematicStates/@id] (: print all preceding problematic states :)
@@ -479,6 +479,12 @@ declare function analysis:isParallel(
         $state as element()
 ) as xs:boolean {
     fn:compare(fn:name($state), 'sc:parallel') = 0
+};
+
+declare function analysis:getTransitionsToState($scxml as element(),
+        $state as element()
+) as element()* {
+  analysis:getTransitionsToState($scxml, $state, true(), true())
 };
 
 (: gets all transitions which result in entering $state :)
@@ -631,7 +637,7 @@ declare function analysis:getProbabilityForRootNode($scxml as element(),
 ) as xs:decimal {
     let $r :=
         fn:sum(
-                for $t in analysis:getTransitionsToState($scxml, analysis:getRootNodeOfSCC($scc), true(), true())
+                for $t in analysis:getTransitionsToState($scxml, analysis:getRootNodeOfSCC($scc))
                 return
                     if (functx:is-node-in-sequence(sc:getSourceState($t), $scc)) then
                         analysis:getTransitionProbability($t(:, $toState:)) *
@@ -652,7 +658,7 @@ declare function analysis:getR($scxml as element(),
         1
     else
         fn:sum(
-                for $t in analysis:getTransitionsToState($scxml, $state, true(), true())
+                for $t in analysis:getTransitionsToState($scxml, $state)
                 return
                     if (functx:is-node-in-sequence(sc:getSourceState($t), $scc)) then
                         analysis:getTransitionProbability($t(:, $toState:)) *

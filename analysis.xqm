@@ -467,7 +467,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                         if ($state/@id = $changedStates/state/@id) then
                         (: $state is changed: changedFactor :)
                             number($changedStates/state[@id = $state/@id]/@factor)
-                        else if ($state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id = $changedStates/state/@id) then
+                        else if ($state/(ancestor::sc:state | ancestor::sc:parallel | ancestor::sc:final)/@id = $changedStates/state/@id) then
                         (: parent is changed :)
                             number($changedStates/state[@id = $state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id]/@factor)
                         else (: not changed :)

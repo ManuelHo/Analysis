@@ -133,7 +133,7 @@ declare function analysis:getStateList($mba as element(),
             for $t in analysis:getTransitionsToState($scxml, $state)
             return
                 if (not(functx:is-node-in-sequence(sc:getSourceState($t), $sccRootNodes))) then (: source of transition is not in seq. $sccRootNodes :)
-                    if (not(functx:is-node-in-sequence(sc:getSourceState($t), $scc))) then (: source of target not in scc :)
+                    if (not(functx:is-node-in-sequence(sc:getSourceState($t), $scc))) then (: source of transition not in scc :)
                         analysis:getStateList($mba, $level, $inState, sc:getSourceState($t), $changedStates, $changedTransitions, $changedTransitionsFactors, (:$toState,:) $sccRootNodes)
                     else
                     (: enter loop :)

@@ -33,9 +33,9 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
         (if ($toState) then
             xs:dateTime($stateLog[last()]/@from)
         else if ($stateLog[last()]/@until) then
-            xs:dateTime($stateLog[last()]/@until)
-        else
-            fn:current-dateTime()
+                xs:dateTime($stateLog[last()]/@until)
+            else
+                fn:current-dateTime()
         ) - xs:dateTime(($stateLog/@from)[1])
 
     return $cycleTimeOfInstance
@@ -68,19 +68,22 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
         $changedStates as element()?,
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*
-) as xs:duration {
+) (:as xs:duration:) {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
-
     let $state := $scxml//*[@id = $toState]
-
-    let $transitions := analysis:getTransitionsToState($scxml, $state)
-
-    let $stateList := functx:distinct-deep(
-            for $t in $transitions
-            let $source := sc:getSourceState($t)
-            return
-                analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $changedTransitionsFactors, (:$toState,:) ())
-    )
+    (: check if $toState is root-node of scc, if yes do not follow transitions to root node which start from states in loop :)
+    let $sccMap := analysis:tarjanAlgorithm($scxml)
+    let $scc := (: if $toState is not in a scc, this is empty :)
+        fn:for-each(
+                map:keys($sccMap),
+                function($k){
+                    if (functx:is-node-in-sequence($state, map:get($sccMap, $k))) then
+                        map:get($sccMap, $k)
+                    else
+                        ()
+                }
+        )
+    let $stateList := analysis:getStateList($mba, $level, $inState, $state, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState, $scc, ())
 
     return (: if list contains composite states, remove all states that have parent states in list :)
         fn:sum(
@@ -94,55 +97,52 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
         )
 };
 
-(: flow analysis with $toState :)
-(: starting with $toState, returns a list of states of all the paths until <sc:initial> :)
-(: may contain duplicates :)
 declare function analysis:getStateList($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $state as element(),
         $changedStates as element()?,
         $changedTransitions as element()*,
-        $changedTransitionsFactors as xs:decimal*(:,
-        $toState as xs:string:),
-        $sccRootNodes as element()*(: makes sure that a loop is not entered twice :)
+        $changedTransitionsFactors as xs:decimal*,
+        $toState as xs:string,
+        $scc as element()*,
+        $stateList as element()*
 ) as element()* {
-    let $scxml := analysis:getSCXMLAtLevel($mba, $level)
+    if (not($stateList[@id = $state/@id])) then (: entered if initial(=no @id) or not entry for $state in $stateList :)
+        let $cycleTime :=
+            if (not(analysis:stateIsInitial($state)) and fn:compare($state/@id, $toState) != 0) then (: if $toState, no calc. :)
+                analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, $changedTransitionsFactors)
+            else
+                ()
 
-    let $cycleTime :=
-        if (not(analysis:stateIsInitial($state))) then
-            analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, $changedTransitionsFactors(:, $toState:))
-        else
-            ()
-
-    let $scc :=
-        if (not(analysis:stateIsInitial($state))) then
-            analysis:getSCCForRootNode($scxml, $state)
-        else
-            ()
-
-    return
-        (
+        let $entry :=
             if (not(empty($cycleTime))) then
                 element {'state'} {
                     $state/@id,
                     attribute averageCycleTime {$cycleTime}
                 }
             else ()
-            ,
-            for $t in analysis:getTransitionsToState($scxml, $state)
+        let $stateList := ($stateList, $entry) (: if $toState or initial, $entry is empty :)
+
+        let $scxml := analysis:getSCXMLAtLevel($mba, $level)
+        let $transitions :=
+            let $t := analysis:getTransitionsToState($scxml, $state)
             return
-                if (not(functx:is-node-in-sequence(sc:getSourceState($t), $sccRootNodes))) then (: source of transition is not in seq. $sccRootNodes :)
-                    if (not(functx:is-node-in-sequence(sc:getSourceState($t), $scc))) then (: source of transition not in scc :)
-                        analysis:getStateList($mba, $level, $inState, sc:getSourceState($t), $changedStates, $changedTransitions, $changedTransitionsFactors, (:$toState,:) $sccRootNodes)
-                    else
-                    (: enter loop :)
-                        let $sccRootNodes := ($sccRootNodes, analysis:getRootNodeOfSCC($scc)) (: add root node to $sccRootNodes :)
-                        return
-                            analysis:getStateList($mba, $level, $inState, sc:getSourceState($t), $changedStates, $changedTransitions, $changedTransitionsFactors, (:$toState,:) $sccRootNodes)
+                if ($scc and ($state is analysis:getRootNodeOfSCC($scc))) then (: special treatment for loops. needed if $toState is in scc :)
+                (: if $toState is in $scc and $state is the root node of it, remove all transitions which enter loop :)
+                    $t[not(functx:is-node-in-sequence(sc:getSourceState(.), $scc))]
                 else
-                    ()(: no further investigation :)
-        )
+                    $t
+        return
+            fn:fold-left($transitions, $stateList,
+                    function($result, $t) {
+                        let $source := sc:getSourceState($t)
+                        return
+                            analysis:getStateList($mba, $level, $inState, $source, $changedStates, $changedTransitions, $changedTransitionsFactors, $toState, $scc, $result)
+                    }
+            )
+    else
+        $stateList(: state already in result list :)
 };
 
 declare function analysis:getProblematicStates($mba as element(),
@@ -462,7 +462,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                     fn:sum($cycleTimes)
         else
             analysis:getAverageCycleTime($mba, $level, $inState, $state/@id) *
-                    analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, (:$toState,:) true(), true()) *
+                    analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, (:$toState,:)true(), true()) *
                     (
                         if ($state/@id = $changedStates/state/@id) then
                         (: $state is changed: changedFactor :)
@@ -484,7 +484,7 @@ declare function analysis:isParallel(
 declare function analysis:getTransitionsToState($scxml as element(),
         $state as element()
 ) as element()* {
-  analysis:getTransitionsToState($scxml, $state, true(), true())
+    analysis:getTransitionsToState($scxml, $state, true(), true())
 };
 
 (: gets all transitions which result in entering $state :)
@@ -585,7 +585,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                                     else
                                         $changedTransitionsFactors[position() = functx:index-of-node($changedTransitions, $transition)]
                                 )
-                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, (:$toState,:) true(), true()))
+                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, (:$toState,:)true(), true()))
                         ,
                         0
                 )
@@ -596,7 +596,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                         return
                             if (not(functx:is-node-in-sequence(sc:getSourceState($transition), $scc))) then (: only states which are not in scc :)
                                 analysis:getTransitionProbability($transition(:, $toState:))
-                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, (:$toState,:) true(), true())
+                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, (:$toState,:)true(), true())
                             else
                                 ()
                         ,
@@ -1040,6 +1040,7 @@ declare function analysis:getCreationTime($mba as element()
 
 (: ### Tarjan Algorithm ### :)
 (: returns map of scc's, loops are from first to last state in map entry :)
+(: scc's which consist of only one state are removed :)
 declare function analysis:tarjanAlgorithm($scxml as element()
 ) as map(*) {
     let $scc :=

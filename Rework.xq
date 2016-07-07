@@ -39,21 +39,23 @@ let $scc := analysis:getSCCForRootNode($scxml, $state)
 
 let $testData := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/Rework.xml")
 let $mba := $testData/mba:mba
-let $mbaSub1 := $testData//mba:mba[@name = "MyReworkTestSub1"]
-let $level := 'l2'
+(:let $mbaSub1 := $testData//mba:mba[@name = "MyReworkTestSub1"]
+:)let $level := 'l2'
 let $stateId := 'S2'
 let $ctS2 := analysis:getAverageCycleTime($mba, 'l2', (), 'S2')
 let $scxml := analysis:getSCXMLAtLevel($mba, 'l2')
-let $state := $scxml//sc:state[@id='S2']
-let $scc := analysis:getSCCForRootNode($scxml, $state)
-
+let $state := $scxml//sc:state[@id='S5']
+(:let $scc := analysis:getSCCForRootNode($scxml, $state)
+:)
 (:let $sccMap := tarjan:tarjanAlgorithm($scxml)
 let $allSCCs := fn:for-each(map:keys($sccMap), function($k){map:get($sccMap, $k)})
 :)
 
-let $prob := analysis:getTransitionProbabilityForTargetState($scxml, $state, (), (), true(), true())
+(:let $prob := analysis:getTransitionProbabilityForTargetState($scxml, $state, (), (), true(), true())
 let $ctTotal := analysis:getTotalCycleTime($mba, 'l2', (), (), (), (), ())
+:)
+let $stateList := analysis:getTotalCycleTimeToState($mba, $level, (), 'S7', (), (), ())
 
-let $stateList := analysis:getStateList($mba, $level, (), $state, (), (), (), ())
+let $transition := $scxml//sc:transition[@event="t3.1"]
 
-return $scc
+return $stateList

@@ -72,7 +72,7 @@ let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $
 
 let $state := $mba/mba:topLevel/mba:childLevel[@name='tacticalInsurance']/mba:elements/sc:scxml/sc:state[@id='DevelopProducts']
 
-return $stateList1
+return analysis:getStateList($mba, 'tacticalInsurance', $inState, $state, (), (), (), ())
 (:
 return $stateList
 :)

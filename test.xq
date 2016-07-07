@@ -85,6 +85,9 @@ let $m := map:get(map:get($map, 1), 1)
 let $x := "-->[I],[SW]"
 
 let $a := <a></a>
-let $a := ($a, $a)
 
-return $a
+let $n := <a id="1"/>
+let $cycleTime := ($n, <a id="2"/>)
+
+
+return ($n is $a)

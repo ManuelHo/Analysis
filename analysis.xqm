@@ -68,7 +68,7 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
         $changedStates as element()?,
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*
-) (:as xs:duration:) {
+) as xs:duration {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
     let $state := $scxml//*[@id = $toState]
     (: check if $toState is root-node of scc, if yes do not follow transitions to root node which start from states in loop :)
@@ -425,6 +425,11 @@ declare function analysis:stateIsInitialOfSCXML($state as element()
             (fn:compare(fn:name($state/..), 'sc:scxml') = 0)
 };
 
+declare function analysis:parentIsParallel($state as element()
+) as xs:boolean {
+    (fn:compare(fn:name($state/..), 'sc:parallel') = 0)
+};
+
 (: true if two times are within 5 minutes :)
 (: $time1 has to be AFTER $time2 :)
 declare function analysis:timesAreSame($time1 as xs:dateTime,
@@ -498,11 +503,11 @@ declare function analysis:getTransitionsToState($scxml as element(),
     (: initial state of scxml :)
         ()
     else if (analysis:stateIsInitial($state) = true()) then
-    (: <sc:initial>: transitions to parent ONLY, as there are no transitions to <sc:initial> :)
+    (: <sc:initial>: transitions to parenentrt ONLY, as there are no transitions to <sc:initial> :)
         analysis:getTransitionsToState($scxml, $state/.., false(), true())
     else if (
-            (fn:compare(fn:name($state/..), 'sc:parallel') = 0) and
-                    ($checkParallel = true())
+            analysis:parentIsParallel($state) and
+                    $checkParallel = true()
         ) then
         (: <sc:parallel>: use transitions to parent :)
         (: trans. of parent: include transitions to itself as well as substates :)
@@ -515,8 +520,7 @@ declare function analysis:getTransitionsToState($scxml as element(),
                 ,
                 (
                     if ($includeSubstates = false()) then (: special treatment for substates of parallel :)
-                        let $siblings := ($state/(following-sibling::sc:state | following-sibling::sc:parallel | following-sibling::sc:initial | following-sibling::sc:final)) |
-                                ($state/(preceding-sibling::sc:state | preceding-sibling::sc:parallel | preceding-sibling::sc:initial | preceding-sibling::sc:final))
+                        let $siblings := analysis:getSiblingStates($state)
                         return
                             (
                                 for $s in $siblings
@@ -530,22 +534,27 @@ declare function analysis:getTransitionsToState($scxml as element(),
             )
         (: ### ### :)
         else
-            let $substates := analysis:getStateAndSubstates($scxml, $state/@id)
-            return
-                (
-                    if ($includeSubstates) then
-                    (: include transitions where target is $state or a substate of $state, but only if source of transition is not also a substate of $state :)
-                        $scxml//sc:transition[@target = $substates][not(functx:is-value-in-sequence(../@id, $substates))]
-                    else
-                    (: $includeSubstates = false, use transitions with target=$state only :)
-                        $scxml//sc:transition[@target = $state/@id]
-                    ,
-                    (: if @initial, add transitions to parent state(WITHOUT substates!) :)
-                    if (fn:compare(fn:string($state/../@initial), fn:string($state/@id)) = 0) then
-                        analysis:getTransitionsToState($scxml, $state/.., false(), true())
-                    else
-                        ()
-                )
+            (
+                if ($includeSubstates) then
+                (: include transitions where target is $state or a substate of $state, but only if source of transition is not also a substate of $state :)
+                    let $substates := analysis:getStateAndSubstates($scxml, $state/@id)
+                    return $scxml//sc:transition[@target = $substates][not(functx:is-value-in-sequence(../@id, $substates))]
+                else
+                (: $includeSubstates = false, use transitions with target=$state only :)
+                    $scxml//sc:transition[@target = $state/@id]
+                ,
+                (: if @initial, add transitions to parent state(WITHOUT substates!) :)
+                if (fn:compare(fn:string($state/../@initial), fn:string($state/@id)) = 0) then
+                    analysis:getTransitionsToState($scxml, $state/.., false(), true())
+                else
+                    ()
+            )
+};
+
+declare function analysis:getSiblingStates($state as element()
+) as element()* {
+    ($state/(following-sibling::sc:state | following-sibling::sc:parallel | following-sibling::sc:initial | following-sibling::sc:final)) |
+            $state/(preceding-sibling::sc:state | preceding-sibling::sc:parallel | preceding-sibling::sc:initial | preceding-sibling::sc:final)
 };
 
 (: calculate absolute probabilities of transitions, used as factors for total cycle time :)

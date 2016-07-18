@@ -62,7 +62,7 @@ let $result := analysis:getCausesOfProblematicStates($mba, $level, $inState, tru
 let $n1 :=
     <states>
         <state id="Archive_f" factor='3'/>
-        <state id='CollectData' factor='0.5'/>
+        <state id='CollectData' factor='0.3'/>
     </states>
 let $inState1 := 'End2'
 let $toState1 := 'Pay'
@@ -72,7 +72,7 @@ let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $
 
 let $state := $mba/mba:topLevel/mba:childLevel[@name='tacticalInsurance']/mba:elements/sc:scxml/sc:state[@id='DevelopProducts']
 
-return analysis:getStateList($mba, 'tacticalInsurance', $inState, $state, (), (), (), ())
+return $stateList1
 (:
 return $stateList
 :)

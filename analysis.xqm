@@ -466,18 +466,25 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
                 else
                     fn:sum($cycleTimes)
         else
-            analysis:getAverageCycleTime($mba, $level, $inState, $state/@id) *
-                    analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, (:$toState,:)true(), true()) *
-                    (
-                        if ($state/@id = $changedStates/state/@id) then
-                        (: $state is changed: changedFactor :)
-                            number($changedStates/state[@id = $state/@id]/@factor)
-                        else if ($state/(ancestor::sc:state | ancestor::sc:parallel | ancestor::sc:final)/@id = $changedStates/state/@id) then
-                        (: parent is changed :)
-                            number($changedStates/state[@id = $state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id]/@factor)
-                        else (: not changed :)
-                            1
-                    )
+            let $sccMap := analysis:tarjanAlgorithm($scxml)
+            return
+                analysis:getAverageCycleTime($mba, $level, $inState, $state/@id) *
+                        analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, $sccMap(:, $toState,:)(:true(), true():)) *
+                        analysis:getChangedStateFactor($state, $changedStates)
+};
+
+declare function analysis:getChangedStateFactor(
+    $state as element(),
+    $changedStates as element()?
+) as xs:double? {
+    if ($state/@id = $changedStates/state/@id) then
+    (: $state is changed: changedFactor :)
+        number($changedStates/state[@id = $state/@id]/@factor)
+    else if ($state/(ancestor::sc:state | ancestor::sc:parallel | ancestor::sc:final)/@id = $changedStates/state/@id) then
+    (: parent is changed :)
+        number($changedStates/state[@id = $state/(ancestor-or-self::sc:state | ancestor-or-self::sc:parallel | ancestor-or-self::sc:final)/@id]/@factor)
+    else (: not changed :)
+        1
 };
 
 declare function analysis:isParallel(
@@ -564,48 +571,40 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
         $state as element(),
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*, (: ATTENTION: has to be in the same order as $changedTransitions! reason: node-identity :)
+        $sccMap as map(*)
         (:$toState as xs:string?,:)
-        $includeSubstates as xs:boolean,
-        $checkParallel as xs:boolean(: ## Workaround to avoid stackoverflow when initial is nested in child of parallel ## :)
+        (:$includeSubstates as xs:boolean,
+        $checkParallel as xs:boolean :)
 ) as xs:decimal {
 (:let $transitions := $scxml//sc:transition[@target=$state/@id]:)
-    if (
-        (fn:compare(fn:name($state), 'sc:initial') = 0) and
-                (fn:compare(fn:name($state/..), 'sc:scxml') = 0)
-    ) then
+    if (analysis:stateIsInitialOfSCXML($state) = true()) then
         1
     else
-        let $transitions := analysis:getTransitionsToState($scxml, $state, $includeSubstates, $checkParallel)
+        let $transitions := analysis:getTransitionsToState($scxml, $state (:$includeSubstates, $checkParallel:))
         (:
             $transitions may contain duplicates. But this is excluded by assumption:
             when a transition is refined, the 'original' transition must not exist anymore!
         :)
 
-        let $scc := analysis:getSCCForRootNode($scxml, $state)
+        let $scc := analysis:getSCCForRootNode($scxml, $state, $sccMap)
         return
             if (empty($scc)) then (: no loop :)
                 fn:sum(
                         for $transition in $transitions
                         return
-                            (
-                                (
-                                    if (not(analysis:transitionInChangedTransitions($transition, $changedTransitions))) then
-                                        analysis:getTransitionProbability($transition(:, $toState:))
-                                    else
-                                        $changedTransitionsFactors[position() = functx:index-of-node($changedTransitions, $transition)]
-                                )
-                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, (:$toState,:)true(), true()))
+                            analysis:getProbabilityFactor($transition, $changedTransitions, $changedTransitionsFactors)
+                                    * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, $sccMap(:, $toState,:)(:true(), true():))
                         ,
                         0
                 )
             else
-                analysis:getProbabilityForRootNode($scxml, $scc(:, $toState:)) (: probability for root node of strongly connected components :)
+                analysis:getProbabilityForRootNode($scxml, $scc, $changedTransitions, $changedTransitionsFactors) (: probability for root node of strongly connected components :)
                         * fn:sum(
                         for $transition in $transitions
                         return
                             if (not(functx:is-node-in-sequence(sc:getSourceState($transition), $scc))) then (: only states which are not in scc :)
-                                analysis:getTransitionProbability($transition(:, $toState:))
-                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, (:$toState,:)true(), true())
+                                analysis:getProbabilityFactor($transition, $changedTransitions, $changedTransitionsFactors)
+                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, $sccMap(:, $toState,:)(:true(), true():))
                             else
                                 ()
                         ,
@@ -619,6 +618,17 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                     b. r = Probability of path leaving root node which goes back to root node
                     c. If there are multiple paths to root node, sum up
         :)
+};
+
+declare function analysis:getProbabilityFactor(
+        $transition as element(),
+        $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*
+) as xs:decimal {
+        if (not(analysis:transitionInChangedTransitions($transition, $changedTransitions))) then
+            analysis:getTransitionProbability($transition)
+        else
+            $changedTransitionsFactors[position() = functx:index-of-node($changedTransitions, $transition)]
 };
 
 (: returns strongly connected components if $state is root node. Empty if $state is no root of a scc :)
@@ -640,17 +650,35 @@ declare function analysis:getSCCForRootNode($scxml as element(),
     return $scc
 };
 
+declare function analysis:getSCCForRootNode($scxml as element(),
+        $state as element(),
+        $sccMap as map(*)
+) as element()* {
+    fn:for-each(
+            map:keys($sccMap),
+            function($k){
+                let $entry := map:get($sccMap, $k)
+                return
+                    if (analysis:getRootNodeOfSCC($entry) is $state) then
+                        $entry
+                    else
+                        ()
+            }
+    )
+};
+
 declare function analysis:getProbabilityForRootNode($scxml as element(),
-        $scc as element()*(:,
-        $toState as xs:string?:)
+        $scc as element()*,
+        $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*
 ) as xs:decimal {
     let $r :=
         fn:sum(
                 for $t in analysis:getTransitionsToState($scxml, analysis:getRootNodeOfSCC($scc))
                 return
                     if (functx:is-node-in-sequence(sc:getSourceState($t), $scc)) then
-                        analysis:getTransitionProbability($t(:, $toState:)) *
-                                analysis:getR($scxml, $scc(:, $toState:), sc:getSourceState($t))
+                        analysis:getProbabilityFactor($t, $changedTransitions, $changedTransitionsFactors) *
+                                analysis:getR($scxml, $scc, sc:getSourceState($t))
                     else
                         0(: source of $t is not in scc :)
         )
@@ -693,11 +721,6 @@ declare function analysis:transitionInChangedTransitions($transition as element(
 declare function analysis:getTransitionProbability($transition as element()(:,
         $toState as xs:string?:)
 ) as xs:decimal {
-    let $mba := $transition/ancestor::mba:mba[last()]
-    let $level := $transition/ancestor::mba:elements[1]/../@name
-    let $descendants := (: if the topLevel is $level, analyze $mba :)
-        analysis:getDescendantsAtLevelOrMBA($mba, $level(:, $toState:))
-
     let $sourceState := sc:getSourceState($transition)
 
     (:
@@ -713,11 +736,16 @@ declare function analysis:getTransitionProbability($transition as element()(:,
         if (fn:compare(fn:name($sourceState), 'sc:initial') = 0) then
             <log leftState='true' tookTransition='true'/> (: probability: 1 :)
         else
+            let $mba := $transition/ancestor::mba:mba[last()]
+            let $level := $transition/ancestor::mba:elements[1]/../@name
+            let $descendants := (: if the topLevel is $level, analyze $mba :)
+                analysis:getDescendantsAtLevelOrMBA($mba, $level(:, $toState:))
+
             for $descendant in $descendants
             let $log := analysis:getEventLog(mba:getSCXML($descendant))
             return
                 for $event in $log/xes:trace/xes:event
-                let $transitionEvent := analysis:getTransitionsForLogEntry(mba:getSCXML($descendant), $event)
+                let $transitionEvent := analysis:getTransitionForLogEntry(mba:getSCXML($descendant), $event)
                 return (: left-state is true if state was left, took-transition is true if transition was taken :)
                     <log leftState='{analysis:stateIsLeft($transitionEvent, $sourceState/@id)}' tookTransition='{analysis:compareTransitions($transition, $transitionEvent)}'/>
 
@@ -737,7 +765,7 @@ declare function analysis:stateIsLeft($transition as element(),
         2. $transition/source is a substate of $state AND $transition/target is neither $state nor a substate
     else false
 :)
-    if (fn:compare(fn:name(sc:getSourceState($transition)), 'sc:initial') = 0) then
+    if (analysis:stateIsInitial(sc:getSourceState($transition))) then
         false()
     else
         let $sourceTransition := fn:string(sc:getSourceState($transition)/@id)
@@ -857,7 +885,7 @@ declare function analysis:getStateLog($mba as element()
                 let $eventTimestamp :=
                     xs:dateTime($event/xes:date[@key = 'time:timestamp']/@value)
 
-                let $transition := analysis:getTransitionsForLogEntry($scxml, $event)
+                let $transition := analysis:getTransitionForLogEntry($scxml, $event)
 
                 let $entrySet := sc:computeEntrySet($transition) (: gets state(s) that are entered :)
                 let $exitSet := sc:computeExitSet($configuration, $transition) (: nodes that are exited :)
@@ -920,7 +948,7 @@ declare function analysis:compareEvents($origEvent as xs:string,
                     (fn:compare('.', fn:substring($newEvent, fn:string-length($origEvent) + 1, 1)) = 0))
 };
 
-declare function analysis:getTransitionsForLogEntry($scxml as element(),
+declare function analysis:getTransitionForLogEntry($scxml as element(),
         $event as element()
 ) as element() {
 (: get properties of current event :)

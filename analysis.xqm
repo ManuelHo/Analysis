@@ -149,7 +149,7 @@ declare function analysis:getProblematicStates($mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
-        $threshold as xs:decimal?
+        $threshold as xs:decimal
 ) as element()* {
 (: return all states whith average cycle time of more than $threshold times total cycle time :)
 (: DECISION: cycleTime will be calculated for whole process, with the option to exclude archiveStates and only include descendants which are $inState :)
@@ -175,7 +175,7 @@ declare function analysis:getCausesOfProblematicStates(
         $level as xs:string,
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
-        $threshold as xs:decimal?
+        $threshold as xs:decimal
 ) as element()* {
 (:
         return the cause of all problematic states, e.g. like
@@ -187,12 +187,6 @@ declare function analysis:getCausesOfProblematicStates(
         If there is a multilevel synchronization dependency:
             - check if there is a problematic state which causes the bottleneck.
     :)
-    let $threshold :=
-        if (not($threshold)) then
-            0.3
-        else
-            $threshold
-
     let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $threshold)
 
     return
@@ -238,16 +232,16 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
                         let $syncLevel := analysis:parseLevelName($t/@cond)
                         let $syncStateId := analysis:parseStateId($t/@cond)
                         return
-                            if (
-                                ($syncFunction = "$_everyDescendantAtLevelIsInState") or
-                                        ($syncFunction = "$_isDescendantAtLevelInState") or
+                            if (($syncFunction = "$_everyDescendantAtLevelIsInState") or
                                         ($syncFunction = "$_someDescendantAtLevelIsInState")) then (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
                                 analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
-                            else if (
-                                ($syncFunction = "$_ancestorAtLevelIsInState") or
-                                        ($syncFunction = "$_isAncestorAtLevelInState")) then
+                            else if ($syncFunction = "$_ancestorAtLevelIsInState") then
                                 analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
-                            else
+                            else if ($syncFunction = "$_isDescendantAtLevelInState") then
+                                    () (: ToDo: mba as param of isDescendantAtLevelInState:)
+                            else if ($syncFunction = "$_isAncestorAtLevelInState") then
+                                        () (: ToDo :)
+                                    else
                                 ()
                     else
                         () (: no cond --> no check needed for sync :)
@@ -586,7 +580,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
             when a transition is refined, the 'original' transition must not exist anymore!
         :)
 
-        let $scc := analysis:getSCCForRootNode($scxml, $state, $sccMap)
+        let $scc := analysis:getSCCForRootNode($state, $sccMap)
         return
             if (empty($scc)) then (: no loop :)
                 fn:sum(
@@ -632,25 +626,14 @@ declare function analysis:getProbabilityFactor(
 };
 
 (: returns strongly connected components if $state is root node. Empty if $state is no root of a scc :)
-declare function analysis:getSCCForRootNode($scxml as element(),
+declare function analysis:getSCCForRootNodeTarjan($scxml as element(),
         $state as element()
 ) as element()* {
     let $sccMap := analysis:tarjanAlgorithm($scxml)
-    let $scc := fn:for-each(
-            map:keys($sccMap),
-            function($k){
-                let $entry := map:get($sccMap, $k)
-                return
-                    if (analysis:getRootNodeOfSCC($entry) is $state) then
-                        $entry
-                    else
-                        ()
-            }
-    )
-    return $scc
+    return analysis:getSCCForRootNode($state, $sccMap)
 };
 
-declare function analysis:getSCCForRootNode($scxml as element(),
+declare function analysis:getSCCForRootNode(
         $state as element(),
         $sccMap as map(*)
 ) as element()* {

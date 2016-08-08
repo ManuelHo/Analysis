@@ -71,8 +71,8 @@ let $cTrans1 := analysis:getSCXMLAtLevel($mba, $level1)//sc:transition[@event="f
 let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $toState1, $n1, (), ())
 
 let $state := $mba/mba:topLevel/mba:childLevel[@name='tacticalInsurance']/mba:elements/sc:scxml/sc:state[@id='DevelopProducts']
-
-return $stateList1
+(:
+return $stateList1:)
 (:
 return $stateList
 :)
@@ -199,7 +199,7 @@ let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level, $inState, $to
 return $stateList
 :)
 
-(:
+
 let $n :=
 <states>
     <state id="ImplementProduct" factor='3'/>
@@ -218,7 +218,7 @@ let $cTransFactors :=
         0.5
     )
 let $stateList := analysis:getTotalCycleTimeToState($mba, $level, $inState, $toState, $n, $cTrans, $cTransFactors)
-let $result := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), $n, $cTrans, $cTransFactors, 0.5)
+let $result := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.2)
 
 let $n1 :=
     <states>
@@ -232,4 +232,3 @@ let $cTrans1 := analysis:getSCXMLAtLevel($mba, $level1)//sc:transition[@event="f
 let $stateList1 := analysis:getTotalCycleTimeToState($mba, $level1, $inState1, $toState1, $n1, (), ())
 
 return $result
-:)

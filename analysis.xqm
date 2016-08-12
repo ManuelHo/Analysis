@@ -229,14 +229,12 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
                 return
                     if ($t/@cond) then
                         let $syncFunction := analysis:parseFunction($t/@cond)
-                        let $syncLevel := analysis:parseLevelName($t/@cond)
-                        let $syncStateId := analysis:parseStateId($t/@cond)
                         return
                             if (($syncFunction = "$_everyDescendantAtLevelIsInState") or
                                         ($syncFunction = "$_someDescendantAtLevelIsInState")) then (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
-                                analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
+                                analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, analysis:parseFirstParam($t/@cond), analysis:parseSecondParam($t/@cond))
                             else if ($syncFunction = "$_ancestorAtLevelIsInState") then
-                                analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId)
+                                analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, analysis:parseFirstParam($t/@cond), analysis:parseSecondParam($t/@cond))
                             else if ($syncFunction = "$_isDescendantAtLevelInState") then
                                     () (: ToDo: mba as param of isDescendantAtLevelInState:)
                             else if ($syncFunction = "$_isAncestorAtLevelInState") then
@@ -1040,16 +1038,50 @@ declare function analysis:parseFunction($cond as xs:string
     fn:substring-before($cond, "(")
 };
 
-(: for parsing level name out of transition condition :)
-declare function analysis:parseLevelName($cond as xs:string
+(: if first and last char of $param equals "'", remove both :)
+declare function analysis:truncateParam(
+    $param as xs:string
 ) as xs:string {
-    fn:substring-before(fn:substring-after($cond, "'"), "'")
+    let $param := functx:trim($param)
+    return
+        if ((substring($param, 1, 1) = "'") and (substring($param, string-length($param), 1) = "'")) then
+            substring(substring($param, 0, string-length($param)), 2)
+        else
+            $param
 };
 
-(: for parsing stateId out of transition condition :)
-declare function analysis:parseStateId($cond as xs:string
+(: first param, e.g. level name :)
+(: string between opening bracket and first comma :)
+declare function analysis:parseFirstParam($cond as xs:string
 ) as xs:string {
-    fn:substring-before(fn:substring-after(fn:substring-after($cond, ","), "'"), "'")
+    analysis:truncateParam(fn:substring-before(fn:substring-after($cond, "("), ","))
+};
+
+(: second param, e.g. stateId :)
+(: string between first comma and next ")" or ",", depending on the number of params :)
+declare function analysis:parseSecondParam($cond as xs:string
+) as xs:string {
+    let $subCond := fn:substring-after($cond, ",")
+    let $delim :=
+        if (contains($subCond, ",")) then
+            "," (: three params :)
+        else
+            ")" (: two params :)
+    return
+        analysis:truncateParam(fn:substring-before($subCond, $delim))
+};
+
+(: third param :)
+(: string after second "," until one char before closing bracket :)
+declare function analysis:parseThirdParam($cond as xs:string
+) as xs:string {
+    analysis:truncateParam(
+            fn:substring-before(
+                    fn:substring-after(fn:substring-after($cond, ","), ",")
+                    ,
+                    ")"
+            )
+    )
 };
 
 (: returns creation time of mba :)
@@ -1068,11 +1100,11 @@ declare function analysis:tarjanAlgorithm($scxml as element()
                 fn:fold-left($scxml//(sc:state | sc:parallel | sc:final),
                         analysis:createMap(0, (), (), (), ()),
                         function($result, $state) {
-                            let $index := map:get($result, 'index')
+                            (:let $index := map:get($result, 'index'):)
                             let $indexes := map:merge(map:get($result, 'indexes'))
-                            let $lowlinks := map:merge(map:get($result, 'lowlinks'))
+                            (:let $lowlinks := map:merge(map:get($result, 'lowlinks'))
                             let $stack := map:get($result, 'stack')
-                            let $scc := map:get($result, 'scc')
+                            let $scc := map:get($result, 'scc'):)
 
                             return
                                 if (analysis:notVisited($indexes, $state/@id)) then
@@ -1102,7 +1134,7 @@ declare function analysis:strongconnect($scxml as element(),
     let $index := map:get($resultMap, 'index') (: next index :)
     let $indexes := map:merge((map:get($resultMap, 'indexes'), map:entry($state/@id, $index)))
     let $lowlink := $index
-    let $lowlinks := map:merge(((map:get($resultMap, 'lowlinks'), map:entry($state/@id, $lowlink))))
+    let $lowlinks := map:merge((map:get($resultMap, 'lowlinks'), map:entry($state/@id, $lowlink)))
 
     let $stack := (map:get($resultMap, 'stack'), $state) (: push :)
     let $scc := map:get($resultMap, 'scc')
@@ -1128,7 +1160,7 @@ declare function analysis:strongconnect($scxml as element(),
                         return
                             analysis:createMap(map:get($sucResult, 'index'),
                                     map:get($sucResult, 'indexes'),
-                                    map:merge((($lowlinks, map:entry($state/@id, $lowlink)))),
+                                    map:merge(($lowlinks, map:entry($state/@id, $lowlink))),
                                     map:get($sucResult, 'stack'),
                                     map:get($sucResult, 'scc')
                             )
@@ -1144,7 +1176,7 @@ declare function analysis:strongconnect($scxml as element(),
                             analysis:createMap(
                                     map:get($result, 'index'),
                                     map:get($result, 'indexes'),
-                                    map:merge((($lowlinks, map:entry($state/@id, $lowlink)))),
+                                    map:merge(($lowlinks, map:entry($state/@id, $lowlink))),
                                     map:get($result, 'stack'),
                                     map:get($result, 'scc')
                             )

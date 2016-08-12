@@ -51,9 +51,13 @@ let $same := analysis:timesAreSame(xs:dateTime($time1), xs:dateTime($time2))
 
 let $times := (xs:dateTime($time2), xs:dateTime($time1))
 
+let $t := $mbaSubstates/mba:topLevel/mba:elements//sc:state[@id="S2.2"]//sc:transition
+
 return
     (
         fn:concat('Total: ', $cycleTime)
         ,
         $problems
+        ,
+        $t
     )

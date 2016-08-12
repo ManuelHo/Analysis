@@ -72,11 +72,6 @@ let $t := $source/t[@id="y"]
 
 let $f := $factors[position() = functx:index-of-node($trans, $t)]
 
-let $string := "$_everyDescendantAtLevelIsInState('levelName', 'StateId')"
-
-let $levelName := fn:substring-before(fn:substring-after($string, "'"), "'")
-let $stateId := fn:substring-before(fn:substring-after(fn:substring-after($string, ","), "'"), "'")
-
 let $subMap := map:merge((map:entry(1, 2), map:entry(2, 3)))
 let $map := map:merge((map:entry(1, $subMap)))
 
@@ -89,5 +84,15 @@ let $a := <a></a>
 let $n := <a id="1"/>
 let $cycleTime := ($n, <a id="2"/>)
 
+let $string := "$_everyDescendantAtLevelIsInState('levelName', 'StateId')"
+let $string2 := "$_everyDescendantAtLevelIsInState('levelName', 'StateId', 'a')"
 
-return ($n is $a)
+let $levelName := fn:substring-before(fn:substring-after($string, "'"), "'")
+let $stateId := fn:substring-before(fn:substring-after(fn:substring-after($string, ","), "'"), "'")
+
+return (
+    analysis:parseThirdParam($string)
+    ,
+    analysis:parseThirdParam($string2)
+)
+

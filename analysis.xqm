@@ -232,9 +232,9 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
                         return
                             if (($syncFunction = "$_everyDescendantAtLevelIsInState") or
                                         ($syncFunction = "$_someDescendantAtLevelIsInState")) then (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
-                                analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, analysis:parseFirstParam($t/@cond), analysis:parseSecondParam($t/@cond))
+                                analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, analysis:parseFirstParamOfTwo($t/@cond), analysis:parseSecondParamOfTwo($t/@cond))
                             else if ($syncFunction = "$_ancestorAtLevelIsInState") then
-                                analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, analysis:parseFirstParam($t/@cond), analysis:parseSecondParam($t/@cond))
+                                analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, analysis:parseFirstParamOfTwo($t/@cond), analysis:parseSecondParamOfTwo($t/@cond))
                             else if ($syncFunction = "$_isDescendantAtLevelInState") then
                                     () (: ToDo: mba as param of isDescendantAtLevelInState:)
                             else if ($syncFunction = "$_isAncestorAtLevelInState") then
@@ -1051,37 +1051,41 @@ declare function analysis:truncateParam(
 };
 
 (: first param, e.g. level name :)
-(: string between opening bracket and first comma :)
-declare function analysis:parseFirstParam($cond as xs:string
+(: string between opening bracket and first comma, so it must not contains commas :)
+declare function analysis:parseFirstParamOfTwo($cond as xs:string
 ) as xs:string {
     analysis:truncateParam(fn:substring-before(fn:substring-after($cond, "("), ","))
 };
 
 (: second param, e.g. stateId :)
-(: string between first comma and next ")" or ",", depending on the number of params :)
-declare function analysis:parseSecondParam($cond as xs:string
+(: string between first comma and next ")" :)
+declare function analysis:parseSecondParamOfTwo($cond as xs:string
 ) as xs:string {
-    let $subCond := fn:substring-after($cond, ",")
-    let $delim :=
-        if (contains($subCond, ",")) then
-            "," (: three params :)
-        else
-            ")" (: two params :)
-    return
-        analysis:truncateParam(fn:substring-before($subCond, $delim))
+    analysis:truncateParam(fn:substring-before(fn:substring-after($cond, ","), ")"))
 };
 
-(: third param :)
-(: string after second "," until one char before closing bracket :)
-declare function analysis:parseThirdParam($cond as xs:string
+(: first param of function with three params :)
+(: chars of param not limited :)
+declare function analysis:parseFirstParamOfThree(
+        $cond as xs:string
 ) as xs:string {
-    analysis:truncateParam(
-            fn:substring-before(
-                    fn:substring-after(fn:substring-after($cond, ","), ",")
-                    ,
-                    ")"
-            )
-    )
+    analysis:truncateParam(substring-after(functx:substring-before-last(functx:substring-before-last($cond, ","), ","), concat(analysis:parseFunction($cond), "(")))
+};
+
+(: second param of three param function :)
+(: must not contain commas :)
+declare function analysis:parseSecondParamOfThree(
+        $cond as xs:string
+) as xs:string {
+    analysis:truncateParam(functx:substring-after-last(functx:substring-before-last($cond, ","), ","))
+};
+
+(: third param of three param function :)
+(: must not contain commas :)
+declare function analysis:parseThirdParamOfThree(
+        $cond as xs:string
+) as xs:string {
+    analysis:truncateParam(functx:substring-after-last(functx:substring-before-last($cond, ")"), ","))
 };
 
 (: returns creation time of mba :)

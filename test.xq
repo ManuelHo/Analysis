@@ -85,14 +85,14 @@ let $n := <a id="1"/>
 let $cycleTime := ($n, <a id="2"/>)
 
 let $string := "$_everyDescendantAtLevelIsInState('levelName', 'StateId')"
-let $string2 := "$_everyDescendantAtLevelIsInState('levelName', 'StateId', 'a')"
+let $string2 := "$_everyDescendantAtLevelIsInState('functi''(),,on', 'levelName', 'StateId')"
 
 let $levelName := fn:substring-before(fn:substring-after($string, "'"), "'")
 let $stateId := fn:substring-before(fn:substring-after(fn:substring-after($string, ","), "'"), "'")
 
 return (
-    analysis:parseThirdParam($string)
+    analysis:parseSecondParamOfTwo($string)
     ,
-    analysis:parseThirdParam($string2)
+    analysis:parseFirstParamOfThree($string2)
 )
 

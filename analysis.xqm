@@ -313,7 +313,7 @@ declare function analysis:isSyncCausingProblem($mba as element(),
         $syncLevel as xs:string,
         $syncStateId as xs:string,
         $syncObj as xs:string?
-) (:as xs:boolean:) {
+) as xs:boolean {
     let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level)
     return (: for each descendant check if there is a problem with this sync :)
         functx:is-value-in-sequence(

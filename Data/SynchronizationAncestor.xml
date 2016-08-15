@@ -41,7 +41,7 @@
 									<xes:string key="sc:target" value="S3"/>
 								</xes:event>
 								<xes:event>
-									<xes:date key="time:timestamp" value="2016-01-01T15:30:00.000+02:00"/>
+									<xes:date key="time:timestamp" value="2016-01-01T12:30:00.000+02:00"/>
 									<xes:string key="sc:state" value="S3"/>
 									<xes:string key="concept:name" value="t3"/>
 									<xes:string key="sc:event" value="t3"/>

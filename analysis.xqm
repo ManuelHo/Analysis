@@ -324,15 +324,13 @@ declare function analysis:isSyncCausingProblem($mba as element(),
                 let $untilProblemState := $stateLog/state[@ref = $state/@id]/@until (: may be more than one when process contains loops :)
                 let $fromTimeSyncState := (: @from time(s) of sync level :)
                     if ($syncFunction = "$_everyDescendantAtLevelIsInState") then
-                        analysis:getMaxFromTimeOfState($descendant, $syncLevel, $syncStateId)
-                    else if (($syncFunction = "$_someDescendantAtLevelIsInState") or
-                            ($syncFunction = "$_isDescendantAtLevelInState"))then
-                    (: descendant has to be in $syncState to trigger transition: all @from times have to be checked :)
-                        analysis:getAllFromTimesOfState($descendant, $syncLevel, $syncStateId)
+                        analysis:getMaxFromTimeOfState($descendant, $syncLevel, $syncStateId, $untilProblemState)
+                    else if ($syncFunction = "$_someDescendantAtLevelIsInState") then
+                        analysis:getMinFromTimeOfState($descendant, $syncLevel, $syncStateId, $untilProblemState)
                     else if ($syncFunction = "$_isDescendantAtLevelInState") then (: get @from times of $syncObj :)
                             analysis:getAllFromTimesOfState(xquery:eval($syncObj), $syncStateId)
-                        else if ($syncFunction = "$_ancestorAtLevelIsInState") then (: ancestor has to be in state to trigger, check all @from times ( because loops) :)
-                                analysis:getAllFromTimesOfState(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId)
+                        else if ($syncFunction = "$_ancestorAtLevelIsInState") then (: ancestor has to be in state to trigger, check all @from times (because loops) :)
+                                analysis:getRelevantFromTimes(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId, $untilProblemState)
                             else if ($syncFunction = "$_isAncestorAtLevelInState") then (: get @from times of $syncObj :)
                                     analysis:getAllFromTimesOfState(xquery:eval($syncObj), $syncStateId)
                                 else
@@ -375,23 +373,32 @@ declare function analysis:getCauseOfProblematicSync($mba as element(),
                 analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $syncProblematicStates, true())
 };
 
-(: returns correct @from from stateLogs of mba/level depending on $syncFunction :)
+(: returns max @from attribut for $state of all descendants which have been in $state at $timestamp :)
 declare function analysis:getMaxFromTimeOfState($mba as element(),
         $level as xs:string,
-        $state as xs:string
-) as xs:dateTime? {
-    let $fromTimes := analysis:getAllFromTimesOfState($mba, $level, $state)
-    return max($fromTimes)
+        $state as xs:string,
+        $timestamp as xs:dateTime*
+) as xs:dateTime* {
+    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp) (:analysis:getAllFromTimesOfState($mba, $level, $state):)
+    return
+        max(
+            for $d in $fromTimes
+            return xs:dateTime($d)
+    )
 };
 
-(: returns all @from times for a given state :)
-declare function analysis:getAllFromTimesOfState($mba as element(),
+(: returns min @from attribut for $state of all descendants which have been in $state at $timestamp :)
+declare function analysis:getMinFromTimeOfState($mba as element(),
         $level as xs:string,
-        $state as xs:string
+        $state as xs:string,
+        $timestamp as xs:dateTime*
 ) as xs:dateTime* {
-    for $descendant in analysis:getDescendantsAtLevelOrMBA($mba, $level)
-    let $subStateLog := analysis:getStateLog($descendant)
-    return xs:dateTime($subStateLog/state[@ref = $state]/@from)
+    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp)
+    return
+        min(
+                for $d in $fromTimes
+                return xs:dateTime($d)
+        )
 };
 
 (: returns all @from times of specific mba :)
@@ -401,6 +408,25 @@ declare function analysis:getAllFromTimesOfState(
 ) as xs:dateTime* {
     let $subStateLog := analysis:getStateLog($mba)
     return xs:dateTime($subStateLog/state[@ref = $state]/@from)
+};
+
+(: get all @from times of state-log entries where $state was active at $timestamp :)
+declare function analysis:getRelevantFromTimes(
+        $mba as element(),
+        $level as xs:string,
+        $state as xs:string,
+        $timestamp as xs:dateTime*
+) as xs:dateTime* {
+    let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level)
+    return
+        for $descendant in $descendants
+        let $stateLog := analysis:getStateLog($descendant)
+        return
+            functx:distinct-deep(
+                for $stamp in $timestamp
+                return
+                    $stateLog//*[@ref = $state and @from <= $stamp and functx:if-empty(@until, current-dateTime()) >= $stamp]
+            )/@from
 };
 
 (: called from getCausesOfProblematicState, checks if a substate of $state is causing a delay and returns "  --> @id [<time>]" if yes :)

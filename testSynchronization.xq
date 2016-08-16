@@ -28,9 +28,9 @@ let $changedStates :=
         <state id="S1" factor='1'/>
         <state id='S2' factor='1'/>
     </states>
-let $inState := 'S4'
+let $inState := 'SY'
 let $toState := 'S4'
-let $level := 'l1'
+let $level := 'l2'
 let $cTrans := (
     analysis:getSCXMLAtLevel($mba, $level)//sc:transition[@event = "t1"],
     analysis:getSCXMLAtLevel($mba, $level)//sc:transition[@event = "t2"]
@@ -41,9 +41,9 @@ let $cTransFactors :=
         1
     )
 
-let $cycleTime := analysis:getTotalCycleTime($mbaIsInState, $level, $inState, true(), (), (), ())
-let $problems := analysis:getCausesOfProblematicStates($mbaIsInState, $level, $inState, true(), 0.3)
-let $problemStates := analysis:getProblematicStates($mbaIsInState, $level, (), true(), 0.3)
+let $cycleTime := analysis:getTotalCycleTime($mba, $level, $inState, true(), (), (), ())
+let $problems := analysis:getCausesOfProblematicStates($mbaAnc, $level, $inState, true(), 0.3)
+let $problemStates := analysis:getProblematicStates($mba, $level, (), true(), 0.3)
 
 let $stateLog := analysis:getStateLog($mba)
 let $time1 := $stateLog/state[@ref='S2']/@until
@@ -53,6 +53,9 @@ let $same := analysis:timesAreSame(xs:dateTime($time1), xs:dateTime($time2))
 let $times := (xs:dateTime($time2), xs:dateTime($time1))
 let $t := $mbaSubstates/mba:topLevel/mba:elements//sc:state[@id="S2.2"]//sc:transition
 
+let $stateId := "SX"
+let $timestamp := (xs:dateTime("2016-01-01T10:21:00+02:00"))
+
 return
     (
         fn:concat('Total: ', $cycleTime)
@@ -61,5 +64,9 @@ return
         ,
         "----"
         ,
-        $problemStates
+        analysis:getStateLog($mbaSub1)
+        ,'-',
+        analysis:getStateLog($mbaSub2)
+        ,'-',
+        analysis:getStateLog($mbaSub3)
     )

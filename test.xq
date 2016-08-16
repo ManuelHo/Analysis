@@ -92,13 +92,7 @@ let $stateId := fn:substring-before(fn:substring-after(fn:substring-after($strin
 
 let $a := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/eval.xml")//x
 
-return (
-    analysis:parseSecondParamOfTwo($string)
-    ,
-    analysis:parseFirstParamOfThree($string2)
-    ,
-    $a
-    ,
-    xquery:eval("import module namespace mba  = 'http://www.dke.jku.at/MBA' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/mba.xqm'; fn:doc('C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationIsInState.xml')/mba:mba")
-)
+let $stateLog := analysis:getStateLog($mba)
+
+return $stateLog
 

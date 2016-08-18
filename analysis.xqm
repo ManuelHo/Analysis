@@ -330,7 +330,7 @@ declare function analysis:isSyncCausingProblem($mba as element(),
                     else if ($syncFunction = "$_isDescendantAtLevelInState") then (: get @from times of $syncObj :)
                             analysis:getAllFromTimesOfState(xquery:eval($syncObj), $syncStateId)
                         else if ($syncFunction = "$_ancestorAtLevelIsInState") then (: ancestor has to be in state to trigger, check all @from times (because loops) :)
-                                analysis:getRelevantFromTimes(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId, $untilProblemState)
+                                analysis:getAllFromTimesOfState(mba:getAncestorAtLevel($descendant, $syncLevel), $syncLevel, $syncStateId)
                             else if ($syncFunction = "$_isAncestorAtLevelInState") then (: get @from times of $syncObj :)
                                     analysis:getAllFromTimesOfState(xquery:eval($syncObj), $syncStateId)
                                 else

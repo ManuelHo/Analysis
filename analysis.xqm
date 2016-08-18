@@ -393,12 +393,22 @@ declare function analysis:getMinFromTimeOfState($mba as element(),
         $state as xs:string,
         $timestamp as xs:dateTime*
 ) as xs:dateTime* {
-    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp)
+    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp) (:analysis:getAllFromTimesOfState($mba, $level, $state):)
     return
         min(
                 for $d in $fromTimes
                 return xs:dateTime($d)
         )
+};
+
+(: returns all @from times for a given state :)
+declare function analysis:getAllFromTimesOfState($mba as element(),
+        $level as xs:string,
+        $state as xs:string
+) as xs:dateTime* {
+    for $descendant in analysis:getDescendantsAtLevelOrMBA($mba, $level)
+    let $subStateLog := analysis:getStateLog($descendant)
+    return xs:dateTime($subStateLog/state[@ref = $state]/@from)
 };
 
 (: returns all @from times of specific mba :)

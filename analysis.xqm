@@ -230,24 +230,15 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
                     let $syncFunction := analysis:parseFunction($t/@cond)
                     return
                         if (($syncFunction = "$_everyDescendantAtLevelIsInState") or
-                                    ($syncFunction = "$_someDescendantAtLevelIsInState")) then (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
+                                ($syncFunction = "$_someDescendantAtLevelIsInState") or
+                                ($syncFunction = "$_ancestorAtLevelIsInState")) then (: "$_everyDescendantAtLevelIsInState('levelName', 'StateId')" :)
                             analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state,
                                     $excludeArchiveStates, $threshold, $syncFunction,
                                     analysis:parseLevelTwoParams($t/@cond),
                                     analysis:parseStateTwoParams($t/@cond), ())
-                        else if ($syncFunction = "$_ancestorAtLevelIsInState") then
-                            analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state,
-                                    $excludeArchiveStates, $threshold, $syncFunction,
-                                    analysis:parseLevelTwoParams($t/@cond),
-                                    analysis:parseStateTwoParams($t/@cond), ())
-                        else if ($syncFunction = "$_isDescendantAtLevelInState") then (: three params :)
+                        else if (($syncFunction = "$_isDescendantAtLevelInState") or
+                                ($syncFunction = "$_isAncestorAtLevelInState"))then (: three params :)
                                 analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state,
-                                        $excludeArchiveStates, $threshold, $syncFunction,
-                                        analysis:parseLevelThreeParams($t/@cond),
-                                        analysis:parseStateThreeParams($t/@cond),
-                                        analysis:parseObjectThreeParams($t/@cond))
-                        else if ($syncFunction = "$_isAncestorAtLevelInState") then (: three params :)
-                                analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba, $level, $state,
                                         $excludeArchiveStates, $threshold, $syncFunction,
                                         analysis:parseLevelThreeParams($t/@cond),
                                         analysis:parseStateThreeParams($t/@cond),
@@ -265,26 +256,6 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
         )
 };
 
-(: to prevent errors, this function checks if the $mba contains a scxml-element for $syncLevel. If not, it replaces $mba with its ancestor at $syncLevel. :)
-declare function analysis:getCausesOfProblematicStateAncestorAtLevelIsInState($mba as element(),
-        $level as xs:string,
-        $state as element(),
-        $excludeArchiveStates as xs:boolean?,
-        $threshold as xs:decimal?,
-        $syncFunction as xs:string,
-        $syncLevel as xs:string,
-        $syncStateId as xs:string,
-        $syncObj as xs:string?
-) as element()* {
-(: ancestor: check if level is in $mba. If not, check ancestors :)
-    let $scxml := analysis:getSCXMLAtLevel($mba, $syncLevel)
-    return
-        if ($scxml) then
-            analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba, $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId, $syncObj)
-        else
-            analysis:getCausesOfProblematicStateMBAAtLevelIsInState(mba:getAncestorAtLevel($mba, $syncLevel), $level, $state, $excludeArchiveStates, $threshold, $syncFunction, $syncLevel, $syncStateId, $syncObj)
-};
-
 declare function analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba as element(),
         $level as xs:string,
         $state as element(),
@@ -295,6 +266,17 @@ declare function analysis:getCausesOfProblematicStateMBAAtLevelIsInState($mba as
         $syncStateId as xs:string,
         $syncObj as xs:string?
 ) as element()* {
+    (: checks if the $mba contains a scxml-element for $syncLevel. If not, it replaces $mba with its ancestor at $syncLevel. :)
+    let $mba :=
+        if (
+            (($syncFunction = "$_ancestorAtLevelIsInState") or
+                ($syncFunction = "$_isAncestorAtLevelInState")
+            ) and not(analysis:getSCXMLAtLevel($mba, $syncLevel))
+        ) then
+            mba:getAncestorAtLevel($mba, $syncLevel)
+        else
+            $mba
+
     let $syncSCXML := analysis:getSCXMLAtLevel($mba, $syncLevel)
     let $syncState := $syncSCXML//(sc:state | sc:parallel | sc:final)[@id = $syncStateId]
 

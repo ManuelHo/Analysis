@@ -18,6 +18,7 @@ let $mbaSub3 := $testData//mba:mba[@name="MySynchronizationTestSub3"]
 
 let $testDataAnc := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationAncestor.xml")
 let $mbaAnc := $testDataAnc/mba:mba
+let $mbaAncSub := $mbaAnc//mba:mba[@name="MySynchronizationTestSub1"]
 let $testDataSub := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationSubstates.xml")
 let $mbaSubstates := $testDataSub/mba:mba
 
@@ -42,7 +43,7 @@ let $cTransFactors :=
     )
 
 let $cycleTime := analysis:getTotalCycleTime($mba, $level, $inState, true(), (), (), ())
-let $problems := analysis:getCausesOfProblematicStates($mbaAnc, $level, $inState, true(), 0.3)
+let $problems := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.3)
 let $problemStates := analysis:getProblematicStates($mba, $level, (), true(), 0.3)
 
 let $stateLog := analysis:getStateLog($mba)

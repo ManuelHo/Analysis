@@ -64,10 +64,14 @@ return
         $problems
         ,
         "----"
-        ,
+        (:,
         analysis:getStateLog($mbaSub1)
         ,'-',
         analysis:getStateLog($mbaSub2)
         ,'-',
-        analysis:getStateLog($mbaSub3)
+        analysis:getStateLog($mbaSub3):)
+        ,
+        analysis:stateIsLeft(analysis:getSCXMLAtLevel($mba, $level)//sc:state[@id="SX"]//sc:transition, analysis:getSCXMLAtLevel($mba, $level)//sc:state[@id="SX"])
+        ,
+        analysis:getSCXMLAtLevel($mba, $level)
     )

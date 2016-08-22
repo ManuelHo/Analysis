@@ -94,5 +94,25 @@ let $a := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/eval.xml")//x
 
 let $stateLog := analysis:getStateLog($mba)
 
-return $stateLog
+let $o := false()
+
+let $testData := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/Synchronization.xml")
+let $mba := $testData/mba:mba
+let $level := "l2"
+
+let $transition := analysis:getSCXMLAtLevel($mba, $level)//sc:state[@id="SX"]//sc:transition
+let $state := analysis:getSCXMLAtLevel($mba, $level)//sc:state[@id="SX"]
+let $sourceTransition := fn:string(sc:getSourceState($transition)/@id)
+let $targetTransition := fn:string($transition/@target)
+let $scxml := $transition/ancestor::sc:scxml[1]
+let $stateAndSubstates := analysis:getStateAndSubstates($scxml, $state)
+
+return
+    (
+        analysis:stateIsLeft($transition, $state/@id)
+        ,
+        (:analysis:getSCXMLAtLevel($mba, $level)
+        ,:)
+        $scxml//(sc:state | sc:parallel | sc:final)[@id = "SX"]/(descendant-or-self::sc:state | descendant-or-self::sc:parallel | descendant-or-self::sc:final)/fn:string(@id)
+    )
 

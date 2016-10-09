@@ -199,8 +199,8 @@
 									<sc:transition event="pickUp" target="Open"/>
 									<sc:transition event="cancel.late" target="Cancelled"/>
 								</sc:state>
-								<sc:transition event="pickUp" target="Open"/>
-								<sc:transition event="cancel" target="Closed"/>
+								<!--<sc:transition event="pickUp" target="Open"/>-->
+								<!--<sc:transition event="cancel" target="Closed"/>-->
 							</sc:state>
 							<sc:state id="Open">
 								<sc:transition event="return" target="Returned"/>
@@ -278,8 +278,8 @@
 										<sc:transition event="pickUp" target="Open"/>
 										<sc:transition event="cancel.late" target="Cancelled"/>
 									</sc:state>
-									<sc:transition event="pickUp" target="Open"/>
-									<sc:transition event="cancel" target="Closed"/>
+									<!--<sc:transition event="pickUp" target="Open"/>-->
+									<!--<sc:transition event="cancel" target="Closed"/>-->
 								</sc:state>
 								<sc:state id="Open">
 									<sc:transition event="return" target="Returned"/>
@@ -364,8 +364,8 @@
 										<sc:transition event="pickUp" target="Open"/>
 										<sc:transition event="cancel.late" target="Cancelled"/>
 									</sc:state>
-									<sc:transition event="pickUp" target="Open"/>
-									<sc:transition event="cancel" target="Closed"/>
+									<!--<sc:transition event="pickUp" target="Open"/>-->
+									<!--<sc:transition event="cancel" target="Closed"/>-->
 								</sc:state>
 								<sc:state id="Open">
 									<sc:transition event="return" target="Returned"/>
@@ -457,8 +457,8 @@
 										<sc:transition event="pickUp" target="Open"/>
 										<sc:transition event="cancel.late" target="Cancelled"/>
 									</sc:state>
-									<sc:transition event="pickUp" target="Open"/>
-									<sc:transition event="cancel" target="Closed"/>
+									<!--<sc:transition event="pickUp" target="Open"/>-->
+									<!--<sc:transition event="cancel" target="Closed"/>-->
 								</sc:state>
 								<sc:state id="Open">
 									<sc:transition event="return" target="Returned"/>
@@ -564,8 +564,8 @@
 										<sc:transition event="pickUp" target="Open"/>
 										<sc:transition event="cancel.late" target="Cancelled"/>
 									</sc:state>
-									<sc:transition event="pickUp" target="Open"/>
-									<sc:transition event="cancel" target="Closed"/>
+									<!--<sc:transition event="pickUp" target="Open"/>-->
+									<!--<sc:transition event="cancel" target="Closed"/>-->
 								</sc:state>
 								<sc:state id="Open">
 									<sc:transition event="return" target="Returned"/>
@@ -691,8 +691,8 @@
 										<sc:transition event="pickUp" target="Open"/>
 										<sc:transition event="cancel.late" target="Cancelled"/>
 									</sc:state>
-									<sc:transition event="pickUp" target="Open"/>
-									<sc:transition event="cancel" target="Closed"/>
+									<!--<sc:transition event="pickUp" target="Open"/>-->
+									<!--<sc:transition event="cancel" target="Closed"/>-->
 								</sc:state>
 								<sc:state id="Open">
 									<sc:transition event="return" target="Returned"/>

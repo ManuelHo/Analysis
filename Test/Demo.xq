@@ -1,10 +1,13 @@
+(:
+ : This file contains some test requests for demonstration
+ :)
 xquery version "3.0";
 
 import module namespace mba = 'http://www.dke.jku.at/MBA';
 import module namespace analysis = 'http://www.dke.jku.at/MBA/Analysis';
 
-let $mba := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/TestData.xml")/mba:mba
-let $mbaQualitative := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/Synchronization.xml")/mba:mba
+let $mba := db:open("TestData")/mba:mba
+let $mbaQualitative := db:open("Synchronization")/mba:mba
 
 let $excludeArchiveStates := true()
 let $changedStates :=

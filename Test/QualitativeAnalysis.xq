@@ -1,14 +1,17 @@
+(:
+ : This file contains test calls for qualitative analysis
+ :)
 xquery version "3.0";
 
 declare namespace xes='http://www.xes-standard.org/';
 
-import module namespace mba  = 'http://www.dke.jku.at/MBA' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/mba.xqm';
-import module namespace functx = 'http://www.functx.com' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/functx.xqm';
-import module namespace analysis='http://www.dke.jku.at/MBA/Analysis' at 'C:/Users/manue/Masterarbeit/Analysis/analysis.xqm';
+import module namespace mba  = 'http://www.dke.jku.at/MBA';
+import module namespace functx = 'http://www.functx.com';
+import module namespace analysis='http://www.dke.jku.at/MBA/Analysis';
 
-import module namespace sc='http://www.w3.org/2005/07/scxml' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/scxml.xqm';
+import module namespace sc='http://www.w3.org/2005/07/scxml';
 
-let $testData := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/Synchronization.xml")
+let $testData := db:open("Synchronization")
 
 let $mba := $testData/mba:mba
 let $mbaTop := $testData//mba:mba[@name="MySynchronizationTest"]
@@ -16,13 +19,13 @@ let $mbaSub1 := $testData//mba:mba[@name="MySynchronizationTestSub1"]
 let $mbaSub2 := $testData//mba:mba[@name="MySynchronizationTestSub2"]
 let $mbaSub3 := $testData//mba:mba[@name="MySynchronizationTestSub3"]
 
-let $testDataAnc := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationAncestor.xml")
+let $testDataAnc := db:open("SynchronizationAncestor")
 let $mbaAnc := $testDataAnc/mba:mba
 let $mbaAncSub := $mbaAnc//mba:mba[@name="MySynchronizationTestSub1"]
-let $testDataSub := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationSubstates.xml")
+let $testDataSub := db:open("SynchronizationSubstates")
 let $mbaSubstates := $testDataSub/mba:mba
 
-let $mbaIsInState := fn:doc('C:/Users/manue/Masterarbeit/Analysis/Data/SynchronizationIsInState.xml')/mba:mba
+let $mbaIsInState := db:open('SynchronizationIsInState')/mba:mba
 
 let $changedStates :=
     <states>
@@ -70,8 +73,4 @@ return
         analysis:getStateLog($mbaSub2)
         ,'-',
         analysis:getStateLog($mbaSub3):)
-        ,
-        analysis:stateIsLeft(analysis:getSCXMLAtLevel($mba, $level)//sc:state[@id="SX"]//sc:transition, analysis:getSCXMLAtLevel($mba, $level)//sc:state[@id="SX"])
-        ,
-        analysis:getSCXMLAtLevel($mba, $level)
     )

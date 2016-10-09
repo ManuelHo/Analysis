@@ -1,7 +1,6 @@
 (:
  : This file contains various test requests for helper functions of the
  : module "analysis.xqm".
- : Requires DB "TestData" or "Data/TestData.xml".
  :)
 
 xquery version "3.0";

@@ -240,7 +240,7 @@ declare function analysis:getProblematicSyncs(
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?
 ) as element()* {
-    for $t in analysis:getTransitionsLeavingState(analysis:getSCXMLAtLevel($mba, $level), $state/@id) (: transitions of $state :) (: $state//sc:transition :)
+    for $t in analysis:getTransitionsLeavingState(analysis:getSCXMLAtLevel($mba, $level), $state/@id) (: transitions of $state :)
     return
         if ($t/@cond) then
             let $syncFunction := analysis:parseFunction($t/@cond)
@@ -287,7 +287,7 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState($mba as element
             $mba
 
     let $syncSCXML := analysis:getSCXMLAtLevel($mba, $syncLevel)
-    let $syncState := analysis:getState($syncSCXML, $syncStateId) (:$syncSCXML//(sc:state | sc:parallel | sc:final)[@id = $syncStateId]:)
+    let $syncState := analysis:getState($syncSCXML, $syncStateId)
 
     (: check if @until of problematic state is shortly after( within 5 minutes) @from of preceding state at least ONCE :)
     return
@@ -372,7 +372,7 @@ declare function analysis:getMaxFromTimeOfState($mba as element(),
         $state as xs:string,
         $timestamp as xs:dateTime*
 ) as xs:dateTime* {
-    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp) (:analysis:getAllFromTimesOfState($mba, $level, $state):)
+    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp)
     return
         max(
                 for $d in $fromTimes
@@ -386,7 +386,7 @@ declare function analysis:getMinFromTimeOfState($mba as element(),
         $state as xs:string,
         $timestamp as xs:dateTime*
 ) as xs:dateTime* {
-    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp) (:analysis:getAllFromTimesOfState($mba, $level, $state):)
+    let $fromTimes := analysis:getRelevantFromTimes($mba, $level, $state, $timestamp)
     return
         min(
                 for $d in $fromTimes
@@ -500,7 +500,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
             let $cycleTimes :=
                 for $substate in $state/(sc:state | sc:parallel | sc:final)
                 return
-                    analysis:getCycleTimeForCompositeState($mba, $level, $inState, $substate, $changedStates, $changedTransitions, $changedTransitionsFactors(:, $toState:))
+                    analysis:getCycleTimeForCompositeState($mba, $level, $inState, $substate, $changedStates, $changedTransitions, $changedTransitionsFactors)
             return
                 if (analysis:isParallel($state)) then
                     max($cycleTimes)
@@ -510,7 +510,7 @@ declare function analysis:getCycleTimeForCompositeState($mba as element(),
             let $sccMap := analysis:tarjanAlgorithm($scxml)
             return
                 analysis:getAverageCycleTime($mba, $level, $inState, $state/@id) *
-                        analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, $sccMap(:, $toState,:)(:true(), true():)) *
+                        analysis:getTransitionProbabilityForTargetState($scxml, $state, $changedTransitions, $changedTransitionsFactors, $sccMap) *
                         analysis:getChangedStateFactor($state, $changedStates)
 };
 
@@ -613,15 +613,11 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*, (: ATTENTION: has to be in the same order as $changedTransitions! reason: node-identity :)
         $sccMap as map(*)
-        (:$toState as xs:string?,:)
-        (:$includeSubstates as xs:boolean,
-        $checkParallel as xs:boolean :)
 ) as xs:decimal {
-(:let $transitions := $scxml//sc:transition[@target=$state/@id]:)
     if (analysis:stateIsInitialOfSCXML($state) = true()) then
         1
     else
-        let $transitions := analysis:getTransitionsToState($scxml, $state(:$includeSubstates, $checkParallel:))
+        let $transitions := analysis:getTransitionsToState($scxml, $state)
         (:
             $transitions may contain duplicates. But this is excluded by assumption:
             when a transition is refined, the 'original' transition must not exist anymore!
@@ -634,7 +630,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                         for $transition in $transitions
                         return
                             analysis:getProbabilityFactor($transition, $changedTransitions, $changedTransitionsFactors)
-                                    * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, $sccMap(:, $toState,:)(:true(), true():))
+                                    * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, $sccMap)
                         ,
                         0
                 )
@@ -645,7 +641,7 @@ declare function analysis:getTransitionProbabilityForTargetState($scxml as eleme
                         return
                             if (not(functx:is-node-in-sequence(sc:getSourceState($transition), $scc))) then (: only states which are not in scc :)
                                 analysis:getProbabilityFactor($transition, $changedTransitions, $changedTransitionsFactors)
-                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, $sccMap(:, $toState,:)(:true(), true():))
+                                        * analysis:getTransitionProbabilityForTargetState($scxml, sc:getSourceState($transition), $changedTransitions, $changedTransitionsFactors, $sccMap)
                             else
                                 ()
                         ,
@@ -718,7 +714,6 @@ declare function analysis:getProbabilityForRootNode($scxml as element(),
 
 declare function analysis:getR($scxml as element(),
         $scc as element()*,
-        (:$toState as xs:string?,:)
         $state as element()
 ) as xs:decimal {
     if ($state is analysis:getRootNodeOfSCC($scc)) then
@@ -728,8 +723,8 @@ declare function analysis:getR($scxml as element(),
                 for $t in analysis:getTransitionsToState($scxml, $state)
                 return
                     if (functx:is-node-in-sequence(sc:getSourceState($t), $scc)) then
-                        analysis:getTransitionProbability($t(:, $toState:)) *
-                                analysis:getR($scxml, $scc(:, $toState:), sc:getSourceState($t))
+                        analysis:getTransitionProbability($t) *
+                                analysis:getR($scxml, $scc, sc:getSourceState($t))
                     else
                         0(: source of $t is not in scc :)
         )
@@ -748,8 +743,8 @@ declare function analysis:transitionInChangedTransitions($transition as element(
 };
 
 (: relative probability :)
-declare function analysis:getTransitionProbability($transition as element()(:,
-        $toState as xs:string?:)
+declare function analysis:getTransitionProbability(
+    $transition as element()
 ) as xs:decimal {
     let $sourceState := sc:getSourceState($transition)
 
@@ -769,7 +764,7 @@ declare function analysis:getTransitionProbability($transition as element()(:,
             let $mba := $transition/ancestor::mba:mba[last()]
             let $level := $transition/ancestor::mba:elements[1]/../@name
             let $descendants := (: if the topLevel is $level, analyze $mba :)
-                analysis:getDescendantsAtLevelOrMBA($mba, $level(:, $toState:))
+                analysis:getDescendantsAtLevelOrMBA($mba, $level)
 
             for $descendant in $descendants
             let $log := analysis:getEventLog(mba:getSCXML($descendant))
@@ -1153,12 +1148,7 @@ declare function analysis:tarjanAlgorithm($scxml as element()
                 fn:fold-left($scxml//(sc:state | sc:parallel | sc:final),
                         analysis:createMap(0, (), (), (), ()),
                         function($result, $state) {
-                        (:let $index := map:get($result, 'index'):)
                             let $indexes := map:merge(map:get($result, 'indexes'))
-                            (:let $lowlinks := map:merge(map:get($result, 'lowlinks'))
-                            let $stack := map:get($result, 'stack')
-                            let $scc := map:get($result, 'scc'):)
-
                             return
                                 if (analysis:notVisited($indexes, $state/@id)) then
                                     analysis:strongconnect($scxml, $state, $result)

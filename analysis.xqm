@@ -35,7 +35,7 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
                 xs:dateTime($stateLog[last()]/@until)
             else
                 fn:current-dateTime()
-        ) - xs:dateTime(($stateLog/@from)[1])
+        ) - xs:dateTime(($stateLog[1]/@from))
 
     return $cycleTimeOfInstance
 };

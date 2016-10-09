@@ -1,7 +1,7 @@
 xquery version "3.0";
 
-import module namespace mba = 'http://www.dke.jku.at/MBA' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/mba.xqm';
-import module namespace analysis = 'http://www.dke.jku.at/MBA/Analysis' at 'C:/Users/manue/Masterarbeit/Analysis/analysis.xqm';
+import module namespace mba = 'http://www.dke.jku.at/MBA';
+import module namespace analysis = 'http://www.dke.jku.at/MBA/Analysis';
 
 let $mba := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/TestData.xml")/mba:mba
 let $mbaQualitative := fn:doc("C:/Users/manue/Masterarbeit/Analysis/Data/Synchronization.xml")/mba:mba
@@ -17,7 +17,7 @@ return
         fn:concat("Avg. cycle time 'ChooseProducts':    ",
                 analysis:getAverageCycleTime($mba,
                         "tacticalInsurance",
-                        "End1", "ChooseProducts", ())
+                        "End1", "ChooseProducts")
         ),
         fn:concat("Actual cycle time tact. level:       ",
                 analysis:getTotalActualCycleTime($mba,

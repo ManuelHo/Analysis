@@ -1,1 +1,7 @@
-REPO INSTALL C:/Users/manue/Masterarbeit/Analysis/analysis.xqm
+REPO INSTALL MBAse/functx.xqm
+REPO INSTALL MBAse/scxml_extension.xqm
+REPO INSTALL MBAse/scxml.xqm
+REPO INSTALL MBAse/mba.xqm
+REPO INSTALL MBAse/synchronization.xqm
+
+REPO INSTALL analysis.xqm

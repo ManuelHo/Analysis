@@ -27,9 +27,9 @@
  :)
 module namespace mba='http://www.dke.jku.at/MBA';
 
-import module namespace functx = 'http://www.functx.com' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/functx.xqm';
+import module namespace functx = 'http://www.functx.com';
 
-import module namespace sc='http://www.w3.org/2005/07/scxml' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/scxml.xqm';
+import module namespace sc='http://www.w3.org/2005/07/scxml';
 
 declare updating function mba:createMBAse($newDb as xs:string) {
   let $dbDimSchemaFileName := 'xsd/collections.xsd'

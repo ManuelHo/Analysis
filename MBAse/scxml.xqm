@@ -31,8 +31,8 @@
  : @author Christoph Schütz
  :)
 module namespace sc = 'http://www.w3.org/2005/07/scxml';
-import module namespace scx='http://www.w3.org/2005/07/scxml/extension/' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/scxml_extension.xqm';
-import module namespace functx = 'http://www.functx.com' at 'C:/Users/manue/Masterarbeit/Analysis/MBAse/functx.xqm';
+import module namespace scx='http://www.w3.org/2005/07/scxml/extension/';
+import module namespace functx = 'http://www.functx.com';
 
 (:~
  : 

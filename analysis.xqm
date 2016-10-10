@@ -7,7 +7,8 @@ import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace functx = 'http://www.functx.com';
 
 (: returns total average cycle time of MBA at a certain level :)
-declare function analysis:getTotalActualCycleTime($mba as element(),
+declare function analysis:getTotalActualCycleTime(
+        $mba as element(),
         $level as xs:string,
         $toState as xs:string?
 ) as xs:duration? {
@@ -23,7 +24,8 @@ declare function analysis:getTotalActualCycleTime($mba as element(),
 
 (: returns cycle time of top level from MBA :)
 (: as time between start and end :)
-declare function analysis:getCycleTimeOfInstance($mba as element(),
+declare function analysis:getCycleTimeOfInstance(
+        $mba as element(),
         $toState as xs:string?
 ) as xs:duration? {
     let $stateLog := analysis:getStateLogToState($mba, $toState)/state
@@ -40,7 +42,8 @@ declare function analysis:getCycleTimeOfInstance($mba as element(),
     return $cycleTimeOfInstance
 };
 
-declare function analysis:getTotalCycleTime($mba as element(),
+declare function analysis:getTotalCycleTime(
+        $mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
@@ -60,7 +63,8 @@ declare function analysis:getTotalCycleTime($mba as element(),
         )
 };
 
-declare function analysis:getTotalCycleTimeToState($mba as element(),
+declare function analysis:getTotalCycleTimeToState(
+        $mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $toState as xs:string,
@@ -96,7 +100,8 @@ declare function analysis:getTotalCycleTimeToState($mba as element(),
         )
 };
 
-declare function analysis:getStateList($mba as element(),
+declare function analysis:getStateList(
+        $mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $state as element(),
@@ -144,7 +149,8 @@ declare function analysis:getStateList($mba as element(),
         $stateList(: state already in result list :)
 };
 
-declare function analysis:getProblematicStates($mba as element(),
+declare function analysis:getProblematicStates(
+        $mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
@@ -205,7 +211,8 @@ declare function analysis:getCausesOfProblematicStates(
     $changedStates/$changedTransitions are not used. Otherwise the $stateLog has to be constructed.
     $toState not used, instead there is the option to $excludeArchiveStates.
 :)
-declare function analysis:getCausesOfProblematicState($mba as element(),
+declare function analysis:getCausesOfProblematicState(
+        $mba as element(),
         $level as xs:string,
         $state as element(),
         $inState as xs:string?,
@@ -215,7 +222,7 @@ declare function analysis:getCausesOfProblematicState($mba as element(),
         $checkPrecedingStates as xs:boolean
 ) as element()* {
     if (analysis:stateIsInitialOfSCXML($state) = true()) then (: initial state of scxml, end recursion :)
-        <process level="{$level}"/>(:fn:concat("Process on level: '", $level, "'"):)
+        <process level="{$level}"/>
     else if (analysis:stateIsInitial($state) = true()) then
     (: call again for parent :)
         analysis:getCausesOfProblematicState($mba, $level, $state/.., $inState, $excludeArchiveStates, $threshold, $problematicStates, $checkPrecedingStates)
@@ -265,7 +272,8 @@ declare function analysis:getProblematicSyncs(
             ()(: no cond --> no check needed for sync :)
 };
 
-declare function analysis:getProblematicSyncsMBAAtLevelIsInState($mba as element(),
+declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
+        $mba as element(),
         $level as xs:string,
         $state as element(),
         $excludeArchiveStates as xs:boolean?,
@@ -297,7 +305,8 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState($mba as element
             ()(: time is totally different, $state is not delayed by sync :)
 };
 
-declare function analysis:isSyncCausingProblem($mba as element(),
+declare function analysis:isSyncCausingProblem(
+        $mba as element(),
         $level as xs:string,
         $state as element(),
         $syncFunction as xs:string,
@@ -338,7 +347,8 @@ declare function analysis:isSyncCausingProblem($mba as element(),
 };
 
 (: follow process and until there is a problematic state :)
-declare function analysis:getCauseOfProblematicSync($mba as element(),
+declare function analysis:getCauseOfProblematicSync(
+        $mba as element(),
         $level as xs:string,
         $state as element(), (: syncState :)
         $excludeArchiveStates as xs:boolean?,
@@ -367,7 +377,8 @@ declare function analysis:getCauseOfProblematicSync($mba as element(),
 };
 
 (: returns max @from attribut for $state of all descendants which have been in $state at $timestamp :)
-declare function analysis:getMaxFromTimeOfState($mba as element(),
+declare function analysis:getMaxFromTimeOfState(
+        $mba as element(),
         $level as xs:string,
         $state as xs:string,
         $timestamp as xs:dateTime*
@@ -381,7 +392,8 @@ declare function analysis:getMaxFromTimeOfState($mba as element(),
 };
 
 (: returns min @from attribut for $state of all descendants which have been in $state at $timestamp :)
-declare function analysis:getMinFromTimeOfState($mba as element(),
+declare function analysis:getMinFromTimeOfState(
+        $mba as element(),
         $level as xs:string,
         $state as xs:string,
         $timestamp as xs:dateTime*
@@ -395,7 +407,8 @@ declare function analysis:getMinFromTimeOfState($mba as element(),
 };
 
 (: returns all @from times for a given state :)
-declare function analysis:getAllFromTimesOfState($mba as element(),
+declare function analysis:getAllFromTimesOfState(
+        $mba as element(),
         $level as xs:string,
         $state as xs:string
 ) as xs:dateTime* {
@@ -433,7 +446,8 @@ declare function analysis:getRelevantFromTimes(
 };
 
 (: called from getCausesOfProblematicState, checks if a substate of $state is causing a delay and returns "  --> @id [<time>]" if yes :)
-declare function analysis:getProblematicSubstates($mba as element(),
+declare function analysis:getProblematicSubstates(
+        $mba as element(),
         $level as xs:string,
         $state as element(),
         $inState as xs:string?,
@@ -455,25 +469,29 @@ declare function analysis:getProblematicSubstates($mba as element(),
             ()
 };
 
-declare function analysis:stateIsInitial($state as element()
+declare function analysis:stateIsInitial(
+        $state as element()
 ) as xs:boolean {
     (fn:compare(fn:name($state), 'sc:initial') = 0)
 };
 
-declare function analysis:stateIsInitialOfSCXML($state as element()
+declare function analysis:stateIsInitialOfSCXML(
+        $state as element()
 ) as xs:boolean {
     (fn:compare(fn:name($state), 'sc:initial') = 0) and
             (fn:compare(fn:name($state/..), 'sc:scxml') = 0)
 };
 
-declare function analysis:parentIsParallel($state as element()
+declare function analysis:parentIsParallel(
+        $state as element()
 ) as xs:boolean {
     (fn:compare(fn:name($state/..), 'sc:parallel') = 0)
 };
 
 (: true if two times are within 5 minutes :)
 (: $time1 has to be AFTER $time2 :)
-declare function analysis:timesAreSame($time1 as xs:dateTime,
+declare function analysis:timesAreSame(
+        $time1 as xs:dateTime,
         $time2 as xs:dateTime
 ) as xs:boolean {
     if (($time2 <= $time1) and ($time1 - $time2 <= xs:dayTimeDuration("PT5M"))) then
@@ -482,14 +500,14 @@ declare function analysis:timesAreSame($time1 as xs:dateTime,
         false()
 };
 
-declare function analysis:getCycleTimeForCompositeState($mba as element(),
+declare function analysis:getCycleTimeForCompositeState(
+        $mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $state as element(),
         $changedStates as element()?,
         $changedTransitions as element()*,
-        $changedTransitionsFactors as xs:decimal*(:,
-        $toState as xs:string?:)
+        $changedTransitionsFactors as xs:decimal*
 ) as xs:duration? {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
 
@@ -534,7 +552,8 @@ declare function analysis:isParallel(
     fn:compare(fn:name($state), 'sc:parallel') = 0
 };
 
-declare function analysis:getTransitionsToState($scxml as element(),
+declare function analysis:getTransitionsToState(
+        $scxml as element(),
         $state as element()
 ) as element()* {
     analysis:getTransitionsToState($scxml, $state, true(), true())
@@ -542,7 +561,8 @@ declare function analysis:getTransitionsToState($scxml as element(),
 
 (: gets all transitions which result in entering $state :)
 (: $includeSubstates: whether transitions with target=substateOf$state should be included or not. Needed for Calculation of @initial/<sc:initial> :)
-declare function analysis:getTransitionsToState($scxml as element(),
+declare function analysis:getTransitionsToState(
+        $scxml as element(),
         $state as element(),
         $includeSubstates as xs:boolean,
         $checkParallel as xs:boolean(: ## Workaround to avoid stackoverflow when initial is nested in child of parallel ## :)
@@ -599,7 +619,8 @@ declare function analysis:getTransitionsToState($scxml as element(),
             )
 };
 
-declare function analysis:getSiblingStates($state as element()
+declare function analysis:getSiblingStates(
+        $state as element()
 ) as element()* {
     ($state/(following-sibling::sc:state | following-sibling::sc:parallel | following-sibling::sc:initial | following-sibling::sc:final)) |
             $state/(preceding-sibling::sc:state | preceding-sibling::sc:parallel | preceding-sibling::sc:initial | preceding-sibling::sc:final)
@@ -608,7 +629,8 @@ declare function analysis:getSiblingStates($state as element()
 (: calculate absolute probabilities of transitions, used as factors for total cycle time :)
 (: $toState: include only descendants which have been/are in $toState :)
 (: $includeSubstates: whether transitions with target=substateOf$state should be included or not. Needed for Calculation of @initial/<sc:initial> :)
-declare function analysis:getTransitionProbabilityForTargetState($scxml as element(),
+declare function analysis:getTransitionProbabilityForTargetState(
+        $scxml as element(),
         $state as element(),
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*, (: ATTENTION: has to be in the same order as $changedTransitions! reason: node-identity :)
@@ -669,7 +691,8 @@ declare function analysis:getProbabilityFactor(
 };
 
 (: returns strongly connected components if $state is root node. Empty if $state is no root of a scc :)
-declare function analysis:getSCCForRootNodeTarjan($scxml as element(),
+declare function analysis:getSCCForRootNodeTarjan(
+        $scxml as element(),
         $state as element()
 ) as element()* {
     let $sccMap := analysis:tarjanAlgorithm($scxml)
@@ -693,7 +716,8 @@ declare function analysis:getSCCForRootNode(
     )
 };
 
-declare function analysis:getProbabilityForRootNode($scxml as element(),
+declare function analysis:getProbabilityForRootNode(
+        $scxml as element(),
         $scc as element()*,
         $changedTransitions as element()*,
         $changedTransitionsFactors as xs:decimal*
@@ -712,7 +736,8 @@ declare function analysis:getProbabilityForRootNode($scxml as element(),
     return 1 div (1 - $r)
 };
 
-declare function analysis:getR($scxml as element(),
+declare function analysis:getR(
+        $scxml as element(),
         $scc as element()*,
         $state as element()
 ) as xs:decimal {
@@ -730,13 +755,15 @@ declare function analysis:getR($scxml as element(),
         )
 };
 
-declare function analysis:getRootNodeOfSCC($scc as element()*
+declare function analysis:getRootNodeOfSCC(
+        $scc as element()*
 ) as element() {
     $scc[last()]
 };
 
 (: returns true if a $transition is in a sequence of $changedTransitions, based on node identity :)
-declare function analysis:transitionInChangedTransitions($transition as element(),
+declare function analysis:transitionInChangedTransitions(
+        $transition as element(),
         $changedTransitions as element()*
 ) as xs:boolean {
     functx:is-node-in-sequence($transition, $changedTransitions)
@@ -781,7 +808,8 @@ declare function analysis:getTransitionProbability(
             0
 };
 
-declare function analysis:stateIsLeft($transition as element(),
+declare function analysis:stateIsLeft(
+        $transition as element(),
         $state as xs:string
 ) as xs:boolean {
 (:
@@ -808,7 +836,8 @@ declare function analysis:stateIsLeft($transition as element(),
 (: if $state is a substate of $transition/source --> no action, defined in documentation :)
 };
 
-declare function analysis:compareTransitions($origTransition as element(),
+declare function analysis:compareTransitions(
+        $origTransition as element(),
         $newTransition as element()
 ) as xs:boolean {
 (:
@@ -846,7 +875,8 @@ declare function analysis:compareTransitions($origTransition as element(),
 };
 
 (: returns average cycle time of a state :)
-declare function analysis:getAverageCycleTime($mba as element(),
+declare function analysis:getAverageCycleTime(
+        $mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $stateId as xs:string
@@ -872,7 +902,8 @@ declare function analysis:getAverageCycleTime($mba as element(),
 
 (: returns total cycle time an instance was in given states :)
 (: $states must not be substates of each other! :)
-declare function analysis:getTotalCycleTimeInStates($mba as element(),
+declare function analysis:getTotalCycleTimeInStates(
+        $mba as element(),
         $states as xs:string*
 ) as xs:duration? {
     let $stateLog := analysis:getStateLog($mba)
@@ -887,7 +918,8 @@ declare function analysis:getTotalCycleTimeInStates($mba as element(),
 };
 
 (: returns state log for a mba :)
-declare function analysis:getStateLog($mba as element()
+declare function analysis:getStateLog(
+        $mba as element()
 ) as element() {
     let $scxml := mba:getSCXML($mba)
     let $log := analysis:getEventLog($scxml)
@@ -935,29 +967,33 @@ declare function analysis:getStateLog($mba as element()
                     map:entry('stateLog', ($stateLog, $newStateLogEntries))
                 ))
             }
-    ) (: closing bracket fn:fold-left :)
+    )
 
     return <stateLog>{map:get($stateLog, 'stateLog')}</stateLog>
 };
 
-declare function analysis:getEventLog($scxml as element()
+declare function analysis:getEventLog(
+        $scxml as element()
 ) as element() {
     $scxml/sc:datamodel/sc:data[@id = "_x"]/xes:log
 };
 
-declare function analysis:getStateAndSubstates($scxml as element(),
+declare function analysis:getStateAndSubstates(
+        $scxml as element(),
         $state as xs:string
 ) as xs:string* {
     $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]/(descendant-or-self::sc:state | descendant-or-self::sc:parallel | descendant-or-self::sc:final)/fn:string(@id)
 };
 
-declare function analysis:getParentStates($scxml as element(),
+declare function analysis:getParentStates(
+        $scxml as element(),
         $state as xs:string
 ) as xs:string* {
     $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]/(ancestor::sc:state | ancestor::sc:parallel | ancestor::sc:final)/fn:string(@id)
 };
 
-declare function analysis:compareConditions($origCond as xs:string,
+declare function analysis:compareConditions(
+        $origCond as xs:string,
         $newCond as xs:string
 ) as xs:boolean {
     (fn:compare($origCond, $newCond) = 0) or
@@ -965,7 +1001,8 @@ declare function analysis:compareConditions($origCond as xs:string,
                     (fn:compare(' and ', fn:substring($newCond, fn:string-length($origCond) + 1, 5)) = 0))
 };
 
-declare function analysis:compareEvents($origEvent as xs:string,
+declare function analysis:compareEvents(
+        $origEvent as xs:string,
         $newEvent as xs:string
 ) as xs:boolean {
     (fn:compare($origEvent, $newEvent) = 0) or
@@ -973,7 +1010,8 @@ declare function analysis:compareEvents($origEvent as xs:string,
                     (fn:compare('.', fn:substring($newEvent, fn:string-length($origEvent) + 1, 1)) = 0))
 };
 
-declare function analysis:getTransitionForLogEntry($scxml as element(),
+declare function analysis:getTransitionForLogEntry(
+        $scxml as element(),
         $event as element()
 ) as element() {
 (: get properties of current event :)
@@ -995,7 +1033,8 @@ declare function analysis:getTransitionForLogEntry($scxml as element(),
     return $transition
 };
 
-declare function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element()
+declare function analysis:getCycleTimeOfStateLogEntry(
+        $stateLogEntry as element()
 ) as xs:duration {
     if ($stateLogEntry/@until) then
         xs:dateTime($stateLogEntry/@until) -
@@ -1004,9 +1043,10 @@ declare function analysis:getCycleTimeOfStateLogEntry($stateLogEntry as element(
             xs:dateTime($stateLogEntry/@from)
 };
 
-declare function analysis:getStateLogToState($mba as element(),
+declare function analysis:getStateLogToState(
+        $mba as element(),
         $toState as xs:string?
-) as element(){
+) as element() {
     let $stateLog := analysis:getStateLog($mba)
     return
         if ($toState) then
@@ -1015,7 +1055,8 @@ declare function analysis:getStateLogToState($mba as element(),
             $stateLog
 };
 
-declare function analysis:getSCXMLAtLevel($mba as element(),
+declare function analysis:getSCXMLAtLevel(
+        $mba as element(),
         $level as xs:string
 ) as element()* {
     ($mba/mba:topLevel[@name = $level])/mba:elements/sc:scxml |
@@ -1023,7 +1064,8 @@ declare function analysis:getSCXMLAtLevel($mba as element(),
 };
 
 (: returns descendants which have been in $toState :)
-declare function analysis:getDescendantsAtLevel($mba as element(),
+declare function analysis:getDescendantsAtLevel(
+        $mba as element(),
         $level as xs:string,
         $toState as xs:string?
 ) as element()* {
@@ -1041,7 +1083,8 @@ declare function analysis:getDescendantsAtLevel($mba as element(),
 };
 
 (: returns all states of $scxml, depending on $excludeArchiveStates :)
-declare function analysis:getStates($scxml as element(),
+declare function analysis:getStates(
+        $scxml as element(),
         $excludeArchiveStates as xs:boolean?
 ) as element()* {
     if ($excludeArchiveStates = true()) then
@@ -1051,7 +1094,8 @@ declare function analysis:getStates($scxml as element(),
 };
 
 (: returns only the most abstract states(=no substates) of $scxml, depending on $excludeArchiveStates :)
-declare function analysis:getMostAbstractStates($scxml as element(),
+declare function analysis:getMostAbstractStates(
+        $scxml as element(),
         $excludeArchiveStates as xs:boolean?
 ) as element()* {
     if ($excludeArchiveStates = true()) then
@@ -1060,7 +1104,8 @@ declare function analysis:getMostAbstractStates($scxml as element(),
         $scxml/(sc:state | sc:parallel | sc:final)
 };
 
-declare function analysis:getDescendantsAtLevelOrMBA($mba as element(),
+declare function analysis:getDescendantsAtLevelOrMBA(
+        $mba as element(),
         $level as xs:string,
         $toState as xs:string?
 ) as element()* {
@@ -1070,14 +1115,16 @@ declare function analysis:getDescendantsAtLevelOrMBA($mba as element(),
         analysis:getDescendantsAtLevel($mba, $level, $toState)
 };
 
-declare function analysis:getDescendantsAtLevelOrMBA($mba as element(),
+declare function analysis:getDescendantsAtLevelOrMBA(
+        $mba as element(),
         $level as xs:string
 ) as element()* {
     analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
 };
 
 (: for parsing function name out of transition condition :)
-declare function analysis:parseFunction($cond as xs:string
+declare function analysis:parseFunction(
+        $cond as xs:string
 ) as xs:string {
     fn:substring-before($cond, "(")
 };
@@ -1096,14 +1143,16 @@ declare function analysis:truncateParam(
 
 (: first param, e.g. level name :)
 (: string between opening bracket and first comma, so it must not contains commas :)
-declare function analysis:parseLevelTwoParams($cond as xs:string
+declare function analysis:parseLevelTwoParams(
+        $cond as xs:string
 ) as xs:string {
     analysis:truncateParam(fn:substring-before(fn:substring-after($cond, "("), ","))
 };
 
 (: second param, e.g. stateId :)
 (: string between first comma and next ")" :)
-declare function analysis:parseStateTwoParams($cond as xs:string
+declare function analysis:parseStateTwoParams(
+        $cond as xs:string
 ) as xs:string {
     analysis:truncateParam(fn:substring-before(fn:substring-after($cond, ","), ")"))
 };
@@ -1133,7 +1182,8 @@ declare function analysis:parseStateThreeParams(
 };
 
 (: returns creation time of mba :)
-declare function analysis:getCreationTime($mba as element()
+declare function analysis:getCreationTime(
+        $mba as element()
 ) as xs:dateTime {
     xs:dateTime(analysis:getStateLog($mba)/state/@from[1])
 };
@@ -1141,7 +1191,8 @@ declare function analysis:getCreationTime($mba as element()
 (: ### Tarjan Algorithm ### :)
 (: returns map of scc's, loops are from first to last state in map entry :)
 (: scc's which consist of only one state are removed :)
-declare function analysis:tarjanAlgorithm($scxml as element()
+declare function analysis:tarjanAlgorithm(
+        $scxml as element()
 ) as map(*) {
     let $scc :=
         map:get(
@@ -1170,7 +1221,8 @@ declare function analysis:tarjanAlgorithm($scxml as element()
         ))
 };
 
-declare function analysis:strongconnect($scxml as element(),
+declare function analysis:strongconnect(
+        $scxml as element(),
         $state as element(),
         $resultMap as map(*)
 ) as map(*) {
@@ -1246,7 +1298,8 @@ declare function analysis:strongconnect($scxml as element(),
             analysis:createMap($index, $indexes, $lowlinks, $stack, $scc)
 };
 
-declare function analysis:createMap($index as xs:integer, (: global index :)
+declare function analysis:createMap(
+        $index as xs:integer, (: global index :)
         $indexes as map(*)?, (: mapping of state to index :)
         $lowlinks as map(*)?, (: mapping of state to lowlinks :)
         $stack as element()*, (: sequence which simulates stack :)
@@ -1261,19 +1314,22 @@ declare function analysis:createMap($index as xs:integer, (: global index :)
     ))
 };
 
-declare function analysis:notVisited($indexes as map(*),
+declare function analysis:notVisited(
+        $indexes as map(*),
         $state as xs:string
 ) as xs:boolean {
     fn:empty(map:get($indexes, $state))
 };
 
-declare function analysis:onStack($stack as element()*,
+declare function analysis:onStack(
+        $stack as element()*,
         $state as element()
 ) as xs:boolean {
     functx:is-node-in-sequence($state, $stack)
 };
 
-declare function analysis:popStack($stack as element()*,
+declare function analysis:popStack(
+        $stack as element()*,
         $scc as element()*,
         $state as element()
 ) as map(*) {
@@ -1292,19 +1348,22 @@ declare function analysis:popStack($stack as element()*,
             analysis:popStack($stack, $scc, $state)
 };
 
-declare function analysis:getSuccessors($scxml as element(),
+declare function analysis:getSuccessors(
+        $scxml as element(),
         $state as xs:string
 ) as element()* {
     $scxml//(sc:state | sc:parallel | sc:final)[@id = analysis:getTransitionsLeavingState($scxml, $state)/@target]
 };
 
-declare function analysis:getTransitionsLeavingState($scxml as element(),
+declare function analysis:getTransitionsLeavingState(
+        $scxml as element(),
         $state as xs:string
 ) as element()* {
     $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]//sc:transition[analysis:stateIsLeft(., $state)]
 };
 
-declare function analysis:getState($scxml as element(),
+declare function analysis:getState(
+        $scxml as element(),
         $state as xs:string
 ) as element()* {
     $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]

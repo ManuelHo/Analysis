@@ -6,13 +6,19 @@ import module namespace mba = 'http://www.dke.jku.at/MBA';
 import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace functx = 'http://www.functx.com';
 
-(: returns total average cycle time of MBA at a certain level :)
+(:~ 
+ : This function returns the cycle time of a MBA until a given state is reached.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $toState time is calculated until this state is reached
+ : @return cycle time until given state is reached
+ :)
 declare function analysis:getTotalActualCycleTime(
         $mba as element(),
         $level as xs:string,
         $toState as xs:string?
 ) as xs:duration? {
-    let $descendants := (: if the topLevel is $level, analyze $mba :)
+    let $descendants :=
         analysis:getDescendantsAtLevelOrMBA($mba, $level, $toState)
 
     let $cycleTimes :=
@@ -22,8 +28,13 @@ declare function analysis:getTotalActualCycleTime(
     return fn:avg($cycleTimes)
 };
 
-(: returns cycle time of top level from MBA :)
-(: as time between start and end :)
+(:~ 
+ : This function returns the cycle time of a MBA's top level until a given state
+ : is reached.
+ : @param $mba investigated MBA
+ : @param $toState time is calculated until this state is reached
+ : @return cycle time until given state is reached
+ :)
 declare function analysis:getCycleTimeOfInstance(
         $mba as element(),
         $toState as xs:string?
@@ -42,6 +53,18 @@ declare function analysis:getCycleTimeOfInstance(
     return $cycleTimeOfInstance
 };
 
+(:~ 
+ : This function returns the cycle time of a MBA with the option to change cycle
+ : times of states and transition probabilities.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $inState only MBAs which are in this state are considered
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $changedStates states, which cycle times are changed
+ : @param $changedTransitions transitions, which probability is changed
+ : @param $changedTransitionsFactors new probabilities of changed transitions
+ : @return cycle time of MBA
+ :)
 declare function analysis:getTotalCycleTime(
         $mba as element(),
         $level as xs:string,
@@ -57,12 +80,24 @@ declare function analysis:getTotalCycleTime(
 
     return (: Archive states can only be on the 'first' level. :)
         sum(
-                for $state in $states (: 'first level' states except for sc:initial :)
+                for $state in $states
                 return
                     analysis:getCycleTimeForCompositeState($mba, $level, $inState, $state, $changedStates, $changedTransitions, $changedTransitionsFactors)
         )
 };
 
+(:~ 
+ : This function returns the cycle time of a MBA until a given state is reached
+ : with the option to change cycle times of states and transition probabilities.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $inState only MBAs which are in this state are considered
+ : @param $toState time is calculated until this state is reached
+ : @param $changedStates states, which cycle times are changed
+ : @param $changedTransitions transitions, which probability is changed
+ : @param $changedTransitionsFactors new probabilities of changed transitions
+ : @return cycle time of MBA
+ :)
 declare function analysis:getTotalCycleTimeToState(
         $mba as element(),
         $level as xs:string,
@@ -100,6 +135,21 @@ declare function analysis:getTotalCycleTimeToState(
         )
 };
 
+ (:~ 
+ : This function returns a list of distinct state elements which can appear in a
+ : process before a given state. The elements contain their weighed cycle times.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $inState only MBAs which are in this state are considered
+ : @param $state state
+ : @param $changedStates states, which cycle times are changed
+ : @param $changedTransitions transitions, which probability is changed
+ : @param $changedTransitionsFactors new probabilities of changed transitions
+ : @param $toState time is calculated until this state is reached
+ : @param $scc strongly connected component whith state as root
+ : @param $stateList already calculated states
+ : @return list of state elements
+ :)
 declare function analysis:getStateList(
         $mba as element(),
         $level as xs:string,
@@ -149,6 +199,17 @@ declare function analysis:getStateList(
         $stateList(: state already in result list :)
 };
 
+(:~ 
+ : This function returns all states of a MBA which cycle time exceeds a given
+ : threshold.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $inState only MBAs which are in this state are considered
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $threshold defines max allowed cycle time as fraction of total cycle
+ :        time
+ : @return problematic states
+ :)
 declare function analysis:getProblematicStates(
         $mba as element(),
         $level as xs:string,
@@ -156,8 +217,6 @@ declare function analysis:getProblematicStates(
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal
 ) as element()* {
-(: return all states whith average cycle time of more than $threshold times total cycle time :)
-(: DECISION: cycleTime will be calculated for whole process, with the option to exclude archiveStates and only include descendants which are $inState :)
     let $totalCycleTime := analysis:getTotalCycleTime($mba, $level, $inState, $excludeArchiveStates, (), (), ())
     let $cycleTimeThreshold := $totalCycleTime * $threshold
 
@@ -174,7 +233,20 @@ declare function analysis:getProblematicStates(
                 ()
 };
 
-(: this function check the topLevel of $mba :)
+(:~ 
+ : This function identifies the causes of problematic states.
+ : If there is a substate which is also problematic AND ends at the same time as
+ : the state, the substate is the bottleneck.
+ : If there is a multilevel synchronization dependency: check if there is a
+ : problematic state which causes the bottleneck.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $inState only MBAs which are in this state are considered
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $threshold defines max allowed cycle time as fraction of total cycle
+ :        time
+ : @return causes of problematic states
+ :)
 declare function analysis:getCausesOfProblematicStates(
         $mba as element(),
         $level as xs:string,
@@ -182,16 +254,6 @@ declare function analysis:getCausesOfProblematicStates(
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal
 ) as element()* {
-(:
-        return the cause of all problematic states, e.g. like
-        A because of B
-
-        e.g. check if a problematic state has high cycle time because of previous state
-
-        If there is a substate which is also problematic AND ends at the same time as the state, the substate is the bottleneck.
-        If there is a multilevel synchronization dependency:
-            - check if there is a problematic state which causes the bottleneck.
-    :)
     let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $threshold)
 
     return
@@ -204,13 +266,20 @@ declare function analysis:getCausesOfProblematicStates(
             </state>
 };
 
-(: checks what is causing $state to be problematic :)
-(: checkPrecedingStates: if true(), function was called from a path of a synchronized process. ProblematicStates in synchronized processes are causing delays in the parallel process :)
-(:
-    $inState is only used for $level of first call (from user - $inState is null if function is called for another level)
-    $changedStates/$changedTransitions are not used. Otherwise the $stateLog has to be constructed.
-    $toState not used, instead there is the option to $excludeArchiveStates.
-:)
+(:~ 
+ : This function identifies the causes of a single problematic state.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $inState only MBAs which are in this state are considered
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $threshold defines max allowed cycle time as fraction of total cycle
+ :        time
+ : @param $problematicStates all problematic states of process
+ : @param $checkPrecedingStates true if function was called from path of
+ :        sychnronized process
+ : @return causes of problematic state
+ :)
 declare function analysis:getCausesOfProblematicState(
         $mba as element(),
         $level as xs:string,
@@ -221,10 +290,9 @@ declare function analysis:getCausesOfProblematicState(
         $problematicStates as element()*,
         $checkPrecedingStates as xs:boolean
 ) as element()* {
-    if (analysis:stateIsInitialOfSCXML($state) = true()) then (: initial state of scxml, end recursion :)
+    if (analysis:stateIsInitialOfSCXML($state) = true()) then
         <process level="{$level}"/>
     else if (analysis:stateIsInitial($state) = true()) then
-    (: call again for parent :)
         analysis:getCausesOfProblematicState($mba, $level, $state/.., $inState, $excludeArchiveStates, $threshold, $problematicStates, $checkPrecedingStates)
     else
         (
@@ -233,13 +301,24 @@ declare function analysis:getCausesOfProblematicState(
             analysis:getProblematicSyncs($mba, $level, $state, $excludeArchiveStates, $threshold)
             ,
             if ($checkPrecedingStates = true()) then
-            (: follow process until initial/problematicState :)
+                (: follow process until initial/problematicState :)
                 analysis:getCauseOfProblematicSync($mba, $level, $state, $excludeArchiveStates, $threshold)
             else
                 ()
         )
 };
 
+(:~ 
+ : This function identifies the causes of a single problematic state by
+ : investigating synchronization dependencies.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $threshold defines max allowed cycle time as fraction of total cycle
+ :        time
+ : @return causes of problematic state
+ :)
 declare function analysis:getProblematicSyncs(
         $mba as element(),
         $level as xs:string,
@@ -247,7 +326,7 @@ declare function analysis:getProblematicSyncs(
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?
 ) as element()* {
-    for $t in analysis:getTransitionsLeavingState(analysis:getSCXMLAtLevel($mba, $level), $state/@id) (: transitions of $state :)
+    for $t in analysis:getTransitionsLeavingState(analysis:getSCXMLAtLevel($mba, $level), $state/@id)
     return
         if ($t/@cond) then
             let $syncFunction := analysis:parseFunction($t/@cond)
@@ -272,6 +351,21 @@ declare function analysis:getProblematicSyncs(
             ()(: no cond --> no check needed for sync :)
 };
 
+(:~ 
+ : This function identifies the causes of a single problematic state by
+ : investigating a specific synchronization dependency.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $threshold defines max allowed cycle time as fraction of total cycle
+ :        time
+ : @param $syncFunction function used in sync dependency
+ : @param $syncLevel level which is referenced in sync dependency
+ : @param $syncStateId state which is ferenced in sync dependency
+ : @param $syncObj object which is referenced in sync dependency
+ : @return causes of problematic state
+ :)
 declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
         $mba as element(),
         $level as xs:string,
@@ -283,8 +377,7 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
         $syncStateId as xs:string,
         $syncObj as xs:string?
 ) as element()* {
-(: checks if the $mba contains a scxml-element for $syncLevel. If not, it replaces $mba with its ancestor at $syncLevel. :)
-    let $mba :=
+    let $mba := (: checks if the $mba contains a scxml element for $syncLevel. If not, it replaces $mba with its ancestor at $syncLevel. :)
         if (
             (($syncFunction = "$_ancestorAtLevelIsInState") or
                     ($syncFunction = "$_isAncestorAtLevelInState")
@@ -297,7 +390,6 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
     let $syncSCXML := analysis:getSCXMLAtLevel($mba, $syncLevel)
     let $syncState := analysis:getState($syncSCXML, $syncStateId)
 
-    (: check if @until of problematic state is shortly after( within 5 minutes) @from of preceding state at least ONCE :)
     return
         if (analysis:isSyncCausingProblem($mba, $level, $state, $syncFunction, $syncLevel, $syncStateId, $syncObj)) then
             analysis:getCauseOfProblematicSync($mba, $syncLevel, $syncState, $excludeArchiveStates, $threshold)
@@ -305,6 +397,20 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
             ()(: time is totally different, $state is not delayed by sync :)
 };
 
+(:~ 
+ : This function checks if a problematic state is caused by a specific
+ : synchronization dependency. This is the case if @until of problematic state
+ : is shortly after (within five minutes) @from of referenced state at least
+ : once.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $syncFunction function used in sync dependency
+ : @param $syncLevel level which is referenced in sync dependency
+ : @param $syncStateId state which is ferenced in sync dependency
+ : @param $syncObj object which is referenced in sync dependency
+ : @return causes of problematic state
+ :)
 declare function analysis:isSyncCausingProblem(
         $mba as element(),
         $level as xs:string,
@@ -346,7 +452,17 @@ declare function analysis:isSyncCausingProblem(
         )
 };
 
-(: follow process and until there is a problematic state :)
+(:~ 
+ : This function identifies the causes of a problematic state which is caused by
+ : a specific synchronization dependency.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $threshold defines max allowed cycle time as fraction of total cycle
+ :        time
+ : @return causes of problematic state
+ :)
 declare function analysis:getCauseOfProblematicSync(
         $mba as element(),
         $level as xs:string,
@@ -359,8 +475,8 @@ declare function analysis:getCauseOfProblematicSync(
     (: "$_everyDescendantAtLevelIsInState"/"$_someDescendantAtLevelIsInState"/"$_ancestorAtLevelIsInState": $state depends on preceding states of syncState  :)
     let $precedingStates := analysis:getTransitionsToState($scxml, $state)/..
     return
-        if ($precedingStates/@id = $problematicStates/@id) then (: at least one $precedingState is problematic :)
-            for $prec in $precedingStates[@id = $problematicStates/@id] (: print all preceding problematic states :)
+        if ($precedingStates/@id = $problematicStates/@id) then
+            for $prec in $precedingStates[@id = $problematicStates/@id]
             return
                 <state id="{fn:string($prec/@id)}">
                     {
@@ -376,7 +492,15 @@ declare function analysis:getCauseOfProblematicSync(
             )
 };
 
-(: returns max @from attribut for $state of all descendants which have been in $state at $timestamp :)
+(:~ 
+ : This function returns the max from attribute of a given state from all
+ : descendants which have been in state at given timestamp.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $timestamp timestamp
+ : @return max from attribute
+ :)
 declare function analysis:getMaxFromTimeOfState(
         $mba as element(),
         $level as xs:string,
@@ -391,7 +515,15 @@ declare function analysis:getMaxFromTimeOfState(
         )
 };
 
-(: returns min @from attribut for $state of all descendants which have been in $state at $timestamp :)
+(:~ 
+ : This function returns the min from attribute of a given state from all
+ : descendants which have been in state at given timestamp.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $timestamp timestamp
+ : @return min from attribute
+ :)
 declare function analysis:getMinFromTimeOfState(
         $mba as element(),
         $level as xs:string,
@@ -406,7 +538,14 @@ declare function analysis:getMinFromTimeOfState(
         )
 };
 
-(: returns all @from times for a given state :)
+(:~ 
+ : This function returns all from attributes of a given state from all
+ : descendants.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @return from attributes
+ :)
 declare function analysis:getAllFromTimesOfState(
         $mba as element(),
         $level as xs:string,
@@ -417,7 +556,12 @@ declare function analysis:getAllFromTimesOfState(
     return xs:dateTime($subStateLog/state[@ref = $state]/@from)
 };
 
-(: returns all @from times of specific mba :)
+(:~ 
+ : This function returns all from attributes of a given state from a given MBA.
+ : @param $mba investigated MBA
+ : @param $state state
+ : @return from attributes
+ :)
 declare function analysis:getAllFromTimesOfState(
         $mba as element(),
         $state as xs:string
@@ -426,7 +570,16 @@ declare function analysis:getAllFromTimesOfState(
     return xs:dateTime($subStateLog/state[@ref = $state]/@from)
 };
 
-(: get all @from times of state-log entries where $state was active at $timestamp :)
+(:~ 
+ : This function returns all from attributes of a given state from all
+ : descendants. Only states which have been active at a given timestamp are
+ : considered.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $timestamp timestamp
+ : @return from attributes
+ :)
 declare function analysis:getRelevantFromTimes(
         $mba as element(),
         $level as xs:string,
@@ -445,7 +598,18 @@ declare function analysis:getRelevantFromTimes(
             )/@from
 };
 
-(: called from getCausesOfProblematicState, checks if a substate of $state is causing a delay and returns "  --> @id [<time>]" if yes :)
+(:~ 
+ : This function checks if a problematic state is caused by a substate.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $state state
+ : @param $inState only MBAs which are in this state are considered
+ : @param $excludeArchiveStates option to exclude archive states
+ : @param $threshold defines max allowed cycle time as fraction of total cycle
+ :        time
+ : @param $problematicStates all problematic states of process
+ : @return causes of problematic state
+ :)
 declare function analysis:getProblematicSubstates(
         $mba as element(),
         $level as xs:string,
@@ -457,8 +621,8 @@ declare function analysis:getProblematicSubstates(
 ) as element()* {
     let $substates := $state//(sc:state | sc:parallel | sc:final)
     return
-        if ($problematicStates/@id = $substates/@id) then (: check substates: if true at least one $substate is problematic :)
-            for $sub in $substates[@id = $problematicStates/@id] (: print all problematic substates :)
+        if ($problematicStates/@id = $substates/@id) then
+            for $sub in $substates[@id = $problematicStates/@id]
             return
                 <state id="{fn:string($sub/@id)}">
                     {
@@ -469,12 +633,22 @@ declare function analysis:getProblematicSubstates(
             ()
 };
 
+(:~ 
+ : This function checks if a state is an initial state.
+ : @param $state state
+ : @return true if state is initial
+ :)
 declare function analysis:stateIsInitial(
         $state as element()
 ) as xs:boolean {
     (fn:compare(fn:name($state), 'sc:initial') = 0)
 };
 
+(:~ 
+ : This function checks if a state is the initial state of the process model.
+ : @param $state state
+ : @return true if state is initial of scxml
+ :)
 declare function analysis:stateIsInitialOfSCXML(
         $state as element()
 ) as xs:boolean {
@@ -482,14 +656,35 @@ declare function analysis:stateIsInitialOfSCXML(
             (fn:compare(fn:name($state/..), 'sc:scxml') = 0)
 };
 
+(:~ 
+ : This function checks if a state is a child of a parallel element.
+ : @param $state state
+ : @return true if state is child of parallel element
+ :)
 declare function analysis:parentIsParallel(
         $state as element()
 ) as xs:boolean {
     (fn:compare(fn:name($state/..), 'sc:parallel') = 0)
 };
 
-(: true if two times are within 5 minutes :)
-(: $time1 has to be AFTER $time2 :)
+(:~ 
+ : This function checks if a state is a parallel element.
+ : @param $state state
+ : @return true if state is a parallel element
+ :)
+declare function analysis:isParallel(
+        $state as element()
+) as xs:boolean {
+    fn:compare(fn:name($state), 'sc:parallel') = 0
+};
+
+(:~ 
+ : This function checks if a timestamp is within five minutes after a second
+ : timestamp.
+ : @param $time1 first timestamp
+ : @param $time2 second timestamp
+ : @return true if first timestamp is within 5 minutes after second timestamp
+ :)
 declare function analysis:timesAreSame(
         $time1 as xs:dateTime,
         $time2 as xs:dateTime
@@ -500,6 +695,18 @@ declare function analysis:timesAreSame(
         false()
 };
 
+(:~ 
+ : This function returns the cycle time of a composite state with the option to
+ : change cycle times and transition probabilities.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $inState only MBAs which are in this state are considered
+ : @param $state state
+ : @param $changedStates states, which cycle times are changed
+ : @param $changedTransitions transitions, which probability is changed
+ : @param $changedTransitionsFactors new probabilities of changed transitions
+ : @return cycle time of composite state
+ :)
 declare function analysis:getCycleTimeForCompositeState(
         $mba as element(),
         $level as xs:string,
@@ -513,8 +720,6 @@ declare function analysis:getCycleTimeForCompositeState(
 
     return
         if ($state/(descendant::sc:state | descendant::sc:parallel | descendant::sc:final)/@id = $changedStates/state/@id) then
-        (: at least one descendant is changed :)
-        (: IF parallel, return MAX branch, ELSE return sum of all substates :)
             let $cycleTimes :=
                 for $substate in $state/(sc:state | sc:parallel | sc:final)
                 return
@@ -532,6 +737,12 @@ declare function analysis:getCycleTimeForCompositeState(
                         analysis:getChangedStateFactor($state, $changedStates)
 };
 
+(:~ 
+ : This function returns the factor a state's cycle time has to be changed.
+ : @param $state state
+ : @param $changedStates factors for states
+ : @return factor a state's cycle time has to be changed
+ :)
 declare function analysis:getChangedStateFactor(
         $state as element(),
         $changedStates as element()?
@@ -546,12 +757,30 @@ declare function analysis:getChangedStateFactor(
         1
 };
 
-declare function analysis:isParallel(
-        $state as element()
-) as xs:boolean {
-    fn:compare(fn:name($state), 'sc:parallel') = 0
+(:~ 
+ : This function returns the probability of a transition.
+ : @param $transition transition
+ : @param $changedTransitions transitions, which probability is changed
+ : @param $changedTransitionsFactors new probabilities of changed transitions
+ : @return probability of transition
+ :)
+declare function analysis:getProbabilityFactor(
+        $transition as element(),
+        $changedTransitions as element()*,
+        $changedTransitionsFactors as xs:decimal*
+) as xs:decimal {
+    if (not(analysis:transitionInChangedTransitions($transition, $changedTransitions))) then
+        analysis:getTransitionProbability($transition)
+    else
+        $changedTransitionsFactors[position() = functx:index-of-node($changedTransitions, $transition)]
 };
 
+(:~ 
+ : This function returns all transitions that enter a given state.
+ : @param $scxml process model
+ : @param $state state
+ : @return transitions that enter state
+ :)
 declare function analysis:getTransitionsToState(
         $scxml as element(),
         $state as element()
@@ -561,6 +790,15 @@ declare function analysis:getTransitionsToState(
 
 (: gets all transitions which result in entering $state :)
 (: $includeSubstates: whether transitions with target=substateOf$state should be included or not. Needed for Calculation of @initial/<sc:initial> :)
+(:~ 
+ : This function returns all transitions that enter a given state.
+ : @param $scxml process model
+ : @param $state state
+ : @param $includeSubstates true, if transitions to substates should be included
+ : @param $checkParallel true, if transitions to a parallel state should be
+ :        included
+ : @return transitions that enter state
+ :)
 declare function analysis:getTransitionsToState(
         $scxml as element(),
         $state as element(),
@@ -568,7 +806,6 @@ declare function analysis:getTransitionsToState(
         $checkParallel as xs:boolean(: ## Workaround to avoid stackoverflow when initial is nested in child of parallel ## :)
 ) as element()* {
     if (analysis:stateIsInitialOfSCXML($state) = true()) then
-    (: initial state of scxml :)
         ()
     else if (analysis:stateIsInitial($state) = true()) then
     (: <sc:initial>: transitions to parenentrt ONLY, as there are no transitions to <sc:initial> :)
@@ -619,6 +856,11 @@ declare function analysis:getTransitionsToState(
             )
 };
 
+(:~ 
+ : This function returns all siblings of a state.
+ : @param $state state
+ : @return all siblings
+ :)
 declare function analysis:getSiblingStates(
         $state as element()
 ) as element()* {
@@ -626,25 +868,26 @@ declare function analysis:getSiblingStates(
             $state/(preceding-sibling::sc:state | preceding-sibling::sc:parallel | preceding-sibling::sc:initial | preceding-sibling::sc:final)
 };
 
-(: calculate absolute probabilities of transitions, used as factors for total cycle time :)
-(: $toState: include only descendants which have been/are in $toState :)
-(: $includeSubstates: whether transitions with target=substateOf$state should be included or not. Needed for Calculation of @initial/<sc:initial> :)
+(:~ 
+ : This function returns the absolute probability of a state.
+ : @param $scxml process model
+ : @param $state state
+ : @param $changedTransitions transitions, which probability is changed
+ : @param $changedTransitionsFactors new probabilities of changed transitions
+ : @param $scc strongly connected components of process model
+ : @return probability of state
+ :)
 declare function analysis:getTransitionProbabilityForTargetState(
         $scxml as element(),
         $state as element(),
         $changedTransitions as element()*,
-        $changedTransitionsFactors as xs:decimal*, (: ATTENTION: has to be in the same order as $changedTransitions! reason: node-identity :)
+        $changedTransitionsFactors as xs:decimal*,
         $sccMap as map(*)
 ) as xs:decimal {
     if (analysis:stateIsInitialOfSCXML($state) = true()) then
         1
     else
         let $transitions := analysis:getTransitionsToState($scxml, $state)
-        (:
-            $transitions may contain duplicates. But this is excluded by assumption:
-            when a transition is refined, the 'original' transition must not exist anymore!
-        :)
-
         let $scc := analysis:getSCCForRootNode($state, $sccMap)
         return
             if (empty($scc)) then (: no loop :)
@@ -679,18 +922,12 @@ declare function analysis:getTransitionProbabilityForTargetState(
         :)
 };
 
-declare function analysis:getProbabilityFactor(
-        $transition as element(),
-        $changedTransitions as element()*,
-        $changedTransitionsFactors as xs:decimal*
-) as xs:decimal {
-    if (not(analysis:transitionInChangedTransitions($transition, $changedTransitions))) then
-        analysis:getTransitionProbability($transition)
-    else
-        $changedTransitionsFactors[position() = functx:index-of-node($changedTransitions, $transition)]
-};
-
-(: returns strongly connected components if $state is root node. Empty if $state is no root of a scc :)
+(:~ 
+ : This function returns a strongly connected component if state is it's root.
+ : @param $scxml process model
+ : @param $state state
+ : @return strongly connected components
+ :)
 declare function analysis:getSCCForRootNodeTarjan(
         $scxml as element(),
         $state as element()
@@ -699,6 +936,12 @@ declare function analysis:getSCCForRootNodeTarjan(
     return analysis:getSCCForRootNode($state, $sccMap)
 };
 
+(:~ 
+ : This function returns a strongly connected component if state is it's root.
+ : @param $state state
+ : @param $sccMap map of all strongly connected components
+ : @return strongly connected components
+ :)
 declare function analysis:getSCCForRootNode(
         $state as element(),
         $sccMap as map(*)
@@ -716,6 +959,15 @@ declare function analysis:getSCCForRootNode(
     )
 };
 
+(:~ 
+ : This function returns the relative probability of the root node of a strongly
+ : connected component.
+ : @param $scxml process model
+ : @param $scc strongly connected component
+ : @param $changedTransitions transitions, which probability is changed
+ : @param $changedTransitionsFactors new probabilities of changed transitions
+ : @return probability of root node
+ :)
 declare function analysis:getProbabilityForRootNode(
         $scxml as element(),
         $scc as element()*,
@@ -730,12 +982,21 @@ declare function analysis:getProbabilityForRootNode(
                         analysis:getProbabilityFactor($t, $changedTransitions, $changedTransitionsFactors) *
                                 analysis:getR($scxml, $scc, sc:getSourceState($t))
                     else
-                        0(: source of $t is not in scc :)
+                        0
         )
 
     return 1 div (1 - $r)
 };
 
+(:~ 
+ : This function returns the value of R (probability that loop is taken), used
+ : for the calculation of the probability of a root node of a strongly connected
+ : component.
+ : @param $scxml process model
+ : @param $scc strongly connected component
+ : @param $state state
+ : @return r
+ :)
 declare function analysis:getR(
         $scxml as element(),
         $scc as element()*,
@@ -751,17 +1012,28 @@ declare function analysis:getR(
                         analysis:getTransitionProbability($t) *
                                 analysis:getR($scxml, $scc, sc:getSourceState($t))
                     else
-                        0(: source of $t is not in scc :)
+                        0
         )
 };
 
+(:~ 
+ : This function returns the root node of a given strongly connected component.
+ : @param $scc strongly connected component
+ : @return root node of strongly connected component
+ :)
 declare function analysis:getRootNodeOfSCC(
         $scc as element()*
 ) as element() {
     $scc[last()]
 };
 
-(: returns true if a $transition is in a sequence of $changedTransitions, based on node identity :)
+(:~ 
+ : This function checks if a transition is in the sequence of changed
+ : transitions, based on node identity.
+ : @param $transition transition
+ : @param $changedTransitions changed transitions
+ : @return true if transition is in changed transitions
+ :)
 declare function analysis:transitionInChangedTransitions(
         $transition as element(),
         $changedTransitions as element()*
@@ -769,7 +1041,11 @@ declare function analysis:transitionInChangedTransitions(
     functx:is-node-in-sequence($transition, $changedTransitions)
 };
 
-(: relative probability :)
+(:~ 
+ : This function returns the relative probability of a transition.
+ : @param $transition transition
+ : @return probability of transition
+ :)
 declare function analysis:getTransitionProbability(
     $transition as element()
 ) as xs:decimal {
@@ -783,22 +1059,19 @@ declare function analysis:getTransitionProbability(
     :)
 
     let $prob :=
-        (: check if $transition/source is initial state :)
-        (: assumption: if yes, probability is 1. As there is exactly one transition in an sc:initial element :)
         if (fn:compare(fn:name($sourceState), 'sc:initial') = 0) then
-            <log leftState='true' tookTransition='true'/> (: probability: 1 :)
+            <log leftState='true' tookTransition='true'/>
         else
             let $mba := $transition/ancestor::mba:mba[last()]
             let $level := $transition/ancestor::mba:elements[1]/../@name
-            let $descendants := (: if the topLevel is $level, analyze $mba :)
+            let $descendants :=
                 analysis:getDescendantsAtLevelOrMBA($mba, $level)
-
             for $descendant in $descendants
             let $log := analysis:getEventLog(mba:getSCXML($descendant))
             return
                 for $event in $log/xes:trace/xes:event
                 let $transitionEvent := analysis:getTransitionForLogEntry(mba:getSCXML($descendant), $event)
-                return (: left-state is true if state was left, took-transition is true if transition was taken :)
+                return
                     <log leftState='{analysis:stateIsLeft($transitionEvent, $sourceState/@id)}' tookTransition='{analysis:compareTransitions($transition, $transitionEvent)}'/>
 
     return
@@ -808,16 +1081,21 @@ declare function analysis:getTransitionProbability(
             0
 };
 
+(:~ 
+ : This function checks if a state is left by a transition.
+ : State is left if:
+ : 1. $transition/source = $state AND $transition/target is neither $state nor a
+ :    substate
+ : 2. $transition/source is a substate of $state AND $transition/target is
+ :    neither $state nor a substate
+ : @param $state state
+ : @param $transition transition
+ : @return true if state is left by transition
+ :)
 declare function analysis:stateIsLeft(
         $transition as element(),
         $state as xs:string
 ) as xs:boolean {
-(:
-    true if:
-        1. $transition/source = $state AND $transition/target is neither $state nor a substate
-        2. $transition/source is a substate of $state AND $transition/target is neither $state nor a substate
-    else false
-:)
     if (analysis:stateIsInitial(sc:getSourceState($transition))) then
         false()
     else
@@ -833,25 +1111,29 @@ declare function analysis:stateIsLeft(
                 true() (: 2. :)
             else
                 false()
-(: if $state is a substate of $transition/source --> no action, defined in documentation :)
 };
 
+(:~ 
+ : This function checks if one transition is a specialization of another
+ : transition.
+ : Rules:
+ : 1. $newTransition may have a more specialized source state.
+ : 2. $newTransition may have a more specialized target state.
+ :   - If both have no target, then target check is ok
+ :   - if source has no target, newTransition may have a target which is
+ :     stateOrSubstate of source
+ : 3. condition may be added to $newTransition (if $origTransition had no cond).
+ :    If no condition, every cond can be introduced
+ : 4. conditions in $newTransition may be specialized, by adding terms with 'AND'
+ : 5. dot notation of events. If no event, every event can be introduced
+ : @param $origTransition original transition
+ : @param $newTransition spezialized transition
+ : @return true if second transition is a valid spezialization of the other
+ :)
 declare function analysis:compareTransitions(
         $origTransition as element(),
         $newTransition as element()
 ) as xs:boolean {
-(:
-    check if $origTransition is the 'same' as $newTransition
-    rules:
-        1. $newTransition may have a more specialized source state.
-        2. $newTransition may have a more specialized target state.
-            - If both have no target, then target check is ok
-            - if source has no target, newTransition may have a target which is stateOrSubstate of source
-        3. condition may be added to $newTransition (if $origTransition had no cond). If no condition, every cond can be introduced
-        4. conditions in $newTransition may be specialized, by adding terms with 'AND'
-        5. dot notation of events. If no event, every event can be introduced
-:)
-
     let $origSource := fn:string(sc:getSourceState($origTransition)/@id)
     let $origTarget := fn:string($origTransition/@target)
     let $origEvent := fn:string($origTransition/@event)
@@ -874,14 +1156,21 @@ declare function analysis:compareTransitions(
             false()
 };
 
-(: returns average cycle time of a state :)
+(:~ 
+ : This function returns the average cycle time of a state.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $inState only MBAs which are in this state are considered
+ : @param $stateId id of state
+ : @return average cycle time of state
+ :)
 declare function analysis:getAverageCycleTime(
         $mba as element(),
         $level as xs:string,
         $inState as xs:string?,
         $stateId as xs:string
 ) as xs:duration? {
-    let $descendants := (: if the topLevel is $level, analyze $mba :)
+    let $descendants :=
         analysis:getDescendantsAtLevelOrMBA($mba, $level)
         [if ($inState) then mba:isInState(., $inState) else true()]
 
@@ -900,8 +1189,13 @@ declare function analysis:getAverageCycleTime(
     return fn:avg($cycleTimes)
 };
 
-(: returns total cycle time an instance was in given states :)
-(: $states must not be substates of each other! :)
+(:~ 
+ : This function returns the time a MBA stays in given states. States must not
+ : be substates of each other.
+ : @param $mba investigated MBA
+ : @param $states states
+ : @return time MBA stays in states
+ :)
 declare function analysis:getTotalCycleTimeInStates(
         $mba as element(),
         $states as xs:string*
@@ -917,7 +1211,11 @@ declare function analysis:getTotalCycleTimeInStates(
     )
 };
 
-(: returns state log for a mba :)
+(:~ 
+ : This function returns the state log of a MBA
+ : @param $mba investigated MBA
+ : @return state log
+ :)
 declare function analysis:getStateLog(
         $mba as element()
 ) as element() {
@@ -931,7 +1229,7 @@ declare function analysis:getStateLog(
 
     let $stateLog := fn:fold-left($events,
             map:merge((
-                map:entry('configuration', ()), (: stores state(s) that are currently entered :)
+                map:entry('configuration', ()),
                 map:entry('stateLog', ())
             )),
             function($result, $event) {
@@ -944,22 +1242,22 @@ declare function analysis:getStateLog(
 
                 let $transition := analysis:getTransitionForLogEntry($scxml, $event)
 
-                let $entrySet := sc:computeEntrySet($transition) (: gets state(s) that are entered :)
-                let $exitSet := sc:computeExitSet($configuration, $transition) (: nodes that are exited :)
+                let $entrySet := sc:computeEntrySet($transition)
+                let $exitSet := sc:computeExitSet($configuration, $transition)
 
                 let $newStateLogEntries := for $state in $entrySet return
                     <state ref="{$state/@id}" from="{$eventTimestamp}"/>
 
                 let $stateLog := for $entry in $stateLog return
-                    if (not($entry/@until) and (some $state in $exitSet satisfies $state/@id = $entry/@ref)) then (: if there is an entry in the state log which has no until yet AND is in the exit set :)
+                    if (not($entry/@until) and (some $state in $exitSet satisfies $state/@id = $entry/@ref)) then
                         copy $new := $entry modify (
                             insert node attribute until {$eventTimestamp} into $new
                         ) return $new
                     else $entry
 
-                let $newConfiguration := ( (: update configuration, i.e. remove nodes which were left and therefore are in the exitSet :)
-                $configuration[not(some $state in $exitSet satisfies $state is .)],
-                $entrySet
+                let $newConfiguration := (
+                  $configuration[not(some $state in $exitSet satisfies $state is .)],
+                  $entrySet
                 )
 
                 return map:merge((
@@ -972,12 +1270,23 @@ declare function analysis:getStateLog(
     return <stateLog>{map:get($stateLog, 'stateLog')}</stateLog>
 };
 
+(:~ 
+ : This function returns the event log of a scxml model.
+ : @param $scxml process model
+ : @return event log
+ :)
 declare function analysis:getEventLog(
         $scxml as element()
 ) as element() {
     $scxml/sc:datamodel/sc:data[@id = "_x"]/xes:log
 };
 
+(:~ 
+ : This function returns a state including his substates.
+ : @param $scxml process model
+ : @param $state state
+ : @return states and substates
+ :)
 declare function analysis:getStateAndSubstates(
         $scxml as element(),
         $state as xs:string
@@ -985,6 +1294,12 @@ declare function analysis:getStateAndSubstates(
     $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]/(descendant-or-self::sc:state | descendant-or-self::sc:parallel | descendant-or-self::sc:final)/fn:string(@id)
 };
 
+(:~ 
+ : This function returns all parent states of a state.
+ : @param $scxml process model
+ : @param $state state
+ : @return parent states
+ :)
 declare function analysis:getParentStates(
         $scxml as element(),
         $state as xs:string
@@ -992,6 +1307,12 @@ declare function analysis:getParentStates(
     $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]/(ancestor::sc:state | ancestor::sc:parallel | ancestor::sc:final)/fn:string(@id)
 };
 
+(:~ 
+ : This function checks if a condition is a spezialization of another.
+ : @param $origCond original condition
+ : @param $newCond spezialized condition
+ : @return true, if second condition is a valid spezialization of the first
+ :)
 declare function analysis:compareConditions(
         $origCond as xs:string,
         $newCond as xs:string
@@ -1001,6 +1322,12 @@ declare function analysis:compareConditions(
                     (fn:compare(' and ', fn:substring($newCond, fn:string-length($origCond) + 1, 5)) = 0))
 };
 
+(:~ 
+ : This function checks if an event is a spezialization of another.
+ : @param $origEvent original event
+ : @param $newEvent spezialized event
+ : @return true, if second event is a valid spezialization of the first
+ :)
 declare function analysis:compareEvents(
         $origEvent as xs:string,
         $newEvent as xs:string
@@ -1010,18 +1337,22 @@ declare function analysis:compareEvents(
                     (fn:compare('.', fn:substring($newEvent, fn:string-length($origEvent) + 1, 1)) = 0))
 };
 
+(:~ 
+ : This function returns the transition which corresponds to a log entry.
+ : @param $scxml process model
+ : @param $event event log entry
+ : @return transition
+ :)
 declare function analysis:getTransitionForLogEntry(
         $scxml as element(),
         $event as element()
 ) as element() {
-(: get properties of current event :)
     let $eventState := fn:string($event/xes:string[@key = 'sc:state']/@value)
     let $eventInitial := fn:string($event/xes:string[@key = 'sc:initial']/@value)
     let $eventEvent := fn:string($event/xes:string[@key = 'sc:event']/@value)
     let $eventTarget := fn:string($event/xes:string[@key = 'sc:target']/@value)
     let $eventCond := fn:string($event/xes:string[@key = 'sc:cond']/@value)
 
-    (: get all transitions from scxml which comply to the current event :)
     let $transition :=
         $scxml//sc:transition[
         (not($eventEvent or @event) or @event = $eventEvent) and
@@ -1033,6 +1364,11 @@ declare function analysis:getTransitionForLogEntry(
     return $transition
 };
 
+(:~ 
+ : This function returns the cycle time of a state log entry.
+ : @param $stateLogEntry state log entry
+ : @return cycle time of state log entry
+ :)
 declare function analysis:getCycleTimeOfStateLogEntry(
         $stateLogEntry as element()
 ) as xs:duration {
@@ -1043,6 +1379,12 @@ declare function analysis:getCycleTimeOfStateLogEntry(
             xs:dateTime($stateLogEntry/@from)
 };
 
+(:~ 
+ : This function returns a state log until a given state is reached.
+ : @param $mba investigated MBA
+ : @param $toState state log is generated until this state is reached
+ : @return state log until state
+ :)
 declare function analysis:getStateLogToState(
         $mba as element(),
         $toState as xs:string?
@@ -1055,6 +1397,12 @@ declare function analysis:getStateLogToState(
             $stateLog
 };
 
+(:~ 
+ : This function returns the process model of a level of a MBA.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @return process model
+ :)
 declare function analysis:getSCXMLAtLevel(
         $mba as element(),
         $level as xs:string
@@ -1063,7 +1411,14 @@ declare function analysis:getSCXMLAtLevel(
             ($mba//mba:childLevel[@name = $level])[1]/mba:elements/sc:scxml
 };
 
-(: returns descendants which have been in $toState :)
+(:~ 
+ : This function returns all descendants of a MBA which are or have been in a
+ : given state.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $toState state
+ : @return descendants which are or have been in state
+ :)
 declare function analysis:getDescendantsAtLevel(
         $mba as element(),
         $level as xs:string,
@@ -1082,7 +1437,13 @@ declare function analysis:getDescendantsAtLevel(
             $descendants
 };
 
-(: returns all states of $scxml, depending on $excludeArchiveStates :)
+(:~ 
+ : This function returns all states of a process model with the option to
+ : exclude archive states.
+ : @param $scxml process model
+ : @param $excludeArchiveStates option to exclude archive states
+ : @return states of process model
+ :)
 declare function analysis:getStates(
         $scxml as element(),
         $excludeArchiveStates as xs:boolean?
@@ -1093,7 +1454,13 @@ declare function analysis:getStates(
         $scxml//(sc:state | sc:parallel | sc:final)
 };
 
-(: returns only the most abstract states(=no substates) of $scxml, depending on $excludeArchiveStates :)
+(:~ 
+ : This function returns the most abstract states of a process model with the option to
+ : exclude archive states.
+ : @param $scxml process model
+ : @param $excludeArchiveStates option to exclude archive states
+ : @return most abstract states of process model
+ :)
 declare function analysis:getMostAbstractStates(
         $scxml as element(),
         $excludeArchiveStates as xs:boolean?
@@ -1104,6 +1471,15 @@ declare function analysis:getMostAbstractStates(
         $scxml/(sc:state | sc:parallel | sc:final)
 };
 
+(:~ 
+ : This function returns all descendants of a given level or, if the given level
+ : is the top level, the MBA itself.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @param $toState option to only include descendants that are or have been in
+ :        this state
+ : @return descendants or MBA
+ :)
 declare function analysis:getDescendantsAtLevelOrMBA(
         $mba as element(),
         $level as xs:string,
@@ -1115,6 +1491,13 @@ declare function analysis:getDescendantsAtLevelOrMBA(
         analysis:getDescendantsAtLevel($mba, $level, $toState)
 };
 
+(:~ 
+ : This function returns all descendants of a given level or, if the given level
+ : is the top level, the MBA itself.
+ : @param $mba investigated MBA
+ : @param $level level of process
+ : @return descendants or MBA
+ :)
 declare function analysis:getDescendantsAtLevelOrMBA(
         $mba as element(),
         $level as xs:string
@@ -1122,14 +1505,23 @@ declare function analysis:getDescendantsAtLevelOrMBA(
     analysis:getDescendantsAtLevelOrMBA($mba, $level, ())
 };
 
-(: for parsing function name out of transition condition :)
+(:~ 
+ : This function returns the function of a transition's condition.
+ : @param $cond condition
+ : @return function
+ :)
 declare function analysis:parseFunction(
         $cond as xs:string
 ) as xs:string {
     fn:substring-before($cond, "(")
 };
 
-(: if first and last char of $param equals "'", remove both :)
+(:~ 
+ : This function removes the first and last character of the given string if
+ : both are "'".
+ : @param $param param
+ : @return truncated param
+ :)
 declare function analysis:truncateParam(
         $param as xs:string
 ) as xs:string {
@@ -1141,56 +1533,84 @@ declare function analysis:truncateParam(
             $param
 };
 
-(: first param, e.g. level name :)
-(: string between opening bracket and first comma, so it must not contains commas :)
+(:~ 
+ : This function parses the first param of the sync. predicate in a transition's
+ : condition. This is the string between opening bracket and first comma, so it
+ : must not contains commas.
+ : @param $cond condition
+ : @return first param, i.e. level name
+ :)
 declare function analysis:parseLevelTwoParams(
         $cond as xs:string
 ) as xs:string {
     analysis:truncateParam(fn:substring-before(fn:substring-after($cond, "("), ","))
 };
 
-(: second param, e.g. stateId :)
-(: string between first comma and next ")" :)
+(:~ 
+ : This function parses the second param of the sync. predicate in a transition's
+ : condition. This is the string between first comma and next ")".
+ : @param $cond condition
+ : @return second param, i.e. state id
+ :)
 declare function analysis:parseStateTwoParams(
         $cond as xs:string
 ) as xs:string {
     analysis:truncateParam(fn:substring-before(fn:substring-after($cond, ","), ")"))
 };
 
-(: first param of function with three params :)
-(: chars of param not limited :)
+(:~ 
+ : This function parses the first param of the sync. predicate in a transition's
+ : condition.
+ : @param $cond condition
+ : @return first param, i.e. object
+ :)
 declare function analysis:parseObjectThreeParams(
         $cond as xs:string
 ) as xs:string {
     analysis:truncateParam(substring-after(functx:substring-before-last(functx:substring-before-last($cond, ","), ","), concat(analysis:parseFunction($cond), "(")))
 };
 
-(: second param of three param function :)
-(: must not contain commas :)
+(:~ 
+ : This function parses the second param of the sync. predicate in a transition's
+ : condition. Must not contains commas.
+ : @param $cond condition
+ : @return second param, i.e. level name
+ :)
 declare function analysis:parseLevelThreeParams(
         $cond as xs:string
 ) as xs:string {
     analysis:truncateParam(functx:substring-after-last(functx:substring-before-last($cond, ","), ","))
 };
 
-(: third param of three param function :)
-(: must not contain commas :)
+(:~ 
+ : This function parses the third param of the sync. predicate in a transition's
+ : condition. Must not contains commas.
+ : @param $cond condition
+ : @return third param, i.e. state id
+ :)
 declare function analysis:parseStateThreeParams(
         $cond as xs:string
 ) as xs:string {
     analysis:truncateParam(functx:substring-after-last(functx:substring-before-last($cond, ")"), ","))
 };
 
-(: returns creation time of mba :)
+(:~ 
+ : This function returns the creation time of a MBA.
+ : @param $mba investigated MBA
+ : @return creation time
+ :)
 declare function analysis:getCreationTime(
         $mba as element()
 ) as xs:dateTime {
     xs:dateTime(analysis:getStateLog($mba)/state/@from[1])
 };
 
-(: ### Tarjan Algorithm ### :)
-(: returns map of scc's, loops are from first to last state in map entry :)
-(: scc's which consist of only one state are removed :)
+(:~ 
+ : This function returns a map of all strongly connected components of a process
+ : model.
+ : @param $scxml process model
+ : @return strongly connected components
+ :)
 declare function analysis:tarjanAlgorithm(
         $scxml as element()
 ) as map(*) {
@@ -1221,6 +1641,13 @@ declare function analysis:tarjanAlgorithm(
         ))
 };
 
+(:~ 
+ : This function provides the functionality of the tarjan algorithm.
+ : @param $scxml process model
+ : @param $state state
+ : @param $resultMap map for environment variables
+ : @return strongly connected components
+ :)
 declare function analysis:strongconnect(
         $scxml as element(),
         $state as element(),
@@ -1298,12 +1725,22 @@ declare function analysis:strongconnect(
             analysis:createMap($index, $indexes, $lowlinks, $stack, $scc)
 };
 
+(:~ 
+ : This function creates a map of environment variables used by the tarjan
+ : algorithm.
+ : @param $index global index
+ : @param $indexes mapping of state to index
+ : @param $lowlinks mapping of state to lowlinks
+ : @param $stack sequence which simulates stack
+ : @param $scc strongly connected components
+ : @return map with environment variables
+ :)
 declare function analysis:createMap(
-        $index as xs:integer, (: global index :)
-        $indexes as map(*)?, (: mapping of state to index :)
-        $lowlinks as map(*)?, (: mapping of state to lowlinks :)
-        $stack as element()*, (: sequence which simulates stack :)
-        $scc as map(*)?(: strongly connected components :)
+        $index as xs:integer,
+        $indexes as map(*)?,
+        $lowlinks as map(*)?,
+        $stack as element()*,
+        $scc as map(*)?
 ) as map(*) {
     map:merge((
         map:entry('index', $index),
@@ -1314,6 +1751,12 @@ declare function analysis:createMap(
     ))
 };
 
+(:~ 
+ : This function checks if a state was already visited by the tarjan algorithm.
+ : @param $indexes mapping of state to index
+ : @param $state state
+ : @return true if state was not already visited
+ :)
 declare function analysis:notVisited(
         $indexes as map(*),
         $state as xs:string
@@ -1321,6 +1764,12 @@ declare function analysis:notVisited(
     fn:empty(map:get($indexes, $state))
 };
 
+(:~ 
+ : This function checks if a state is currently placed on the stack.
+ : @param $stack sequence which simulates stack
+ : @param $state state
+ : @return true if state is on stack
+ :)
 declare function analysis:onStack(
         $stack as element()*,
         $state as element()
@@ -1328,6 +1777,15 @@ declare function analysis:onStack(
     functx:is-node-in-sequence($state, $stack)
 };
 
+(:~ 
+ : This function pops states from the stack until the popped state equals the
+ : given state. The popped states are added to a new strongly connected
+ : component which is returned.
+ : @param $stack sequence which simulates stack
+ : @param $scc strongly connected component
+ : @param $state state
+ : @return new stack and scc
+ :)
 declare function analysis:popStack(
         $stack as element()*,
         $scc as element()*,
@@ -1348,6 +1806,12 @@ declare function analysis:popStack(
             analysis:popStack($stack, $scc, $state)
 };
 
+(:~ 
+ : This function returns all successors of a state.
+ : @param $scxml process model
+ : @param $state state
+ : @return successors of state
+ :)
 declare function analysis:getSuccessors(
         $scxml as element(),
         $state as xs:string
@@ -1355,6 +1819,12 @@ declare function analysis:getSuccessors(
     $scxml//(sc:state | sc:parallel | sc:final)[@id = analysis:getTransitionsLeavingState($scxml, $state)/@target]
 };
 
+(:~ 
+ : This function returns all transitions which leave a state.
+ : @param $scxml process model
+ : @param $state state
+ : @return transitions leaving state
+ :)
 declare function analysis:getTransitionsLeavingState(
         $scxml as element(),
         $state as xs:string
@@ -1362,6 +1832,12 @@ declare function analysis:getTransitionsLeavingState(
     $scxml//(sc:state | sc:parallel | sc:final)[@id = $state]//sc:transition[analysis:stateIsLeft(., $state)]
 };
 
+(:~ 
+ : This function returns a state element for a state id.
+ : @param $scxml process model
+ : @param $state state id
+ : @return state element
+ :)
 declare function analysis:getState(
         $scxml as element(),
         $state as xs:string

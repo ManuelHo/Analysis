@@ -245,6 +245,7 @@ declare function analysis:getProblematicStates(
  : @param $excludeArchiveStates option to exclude archive states
  : @param $threshold defines max allowed cycle time as fraction of total cycle
  :        time
+ : @param $difference max duration between two correlating events
  : @return causes of problematic states
  :)
 declare function analysis:getCausesOfProblematicStates(
@@ -279,6 +280,7 @@ declare function analysis:getCausesOfProblematicStates(
  : @param $problematicStates all problematic states of process
  : @param $checkPrecedingStates true if function was called from path of
  :        sychnronized process
+ : @param $difference max duration between two correlating events
  : @return causes of problematic state
  :)
 declare function analysis:getCausesOfProblematicState(
@@ -319,6 +321,7 @@ declare function analysis:getCausesOfProblematicState(
  : @param $excludeArchiveStates option to exclude archive states
  : @param $threshold defines max allowed cycle time as fraction of total cycle
  :        time
+ : @param $difference max duration between two correlating events
  : @return causes of problematic state
  :)
 declare function analysis:getProblematicSyncs(
@@ -368,6 +371,7 @@ declare function analysis:getProblematicSyncs(
  : @param $syncLevel level which is referenced in sync dependency
  : @param $syncStateId state which is ferenced in sync dependency
  : @param $syncObj object which is referenced in sync dependency
+ : @param $difference max duration between two correlating events
  : @return causes of problematic state
  :)
 declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
@@ -468,6 +472,7 @@ declare function analysis:isSyncCausingProblem(
  : @param $excludeArchiveStates option to exclude archive states
  : @param $threshold defines max allowed cycle time as fraction of total cycle
  :        time
+ : @param $difference max duration between two correlating events
  : @return causes of problematic state
  :)
 declare function analysis:getCauseOfProblematicSync(
@@ -616,6 +621,7 @@ declare function analysis:getRelevantFromTimes(
  : @param $threshold defines max allowed cycle time as fraction of total cycle
  :        time
  : @param $problematicStates all problematic states of process
+ : @param $difference max duration between two correlating events
  : @return causes of problematic state
  :)
 declare function analysis:getProblematicSubstates(

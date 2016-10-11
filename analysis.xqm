@@ -252,7 +252,8 @@ declare function analysis:getCausesOfProblematicStates(
         $level as xs:string,
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
-        $threshold as xs:decimal
+        $threshold as xs:decimal,
+        $difference as xs:dayTimeDuration?
 ) as element()* {
     let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $threshold)
 
@@ -261,7 +262,7 @@ declare function analysis:getCausesOfProblematicStates(
         return
             <state id="{fn:string($state/@id)}">
                 {
-                    analysis:getCausesOfProblematicState($mba, $level, $state, $inState, $excludeArchiveStates, $threshold, $problematicStates, false())
+                    analysis:getCausesOfProblematicState($mba, $level, $state, $inState, $excludeArchiveStates, $threshold, $problematicStates, false(), $difference)
                 }
             </state>
 };
@@ -288,21 +289,22 @@ declare function analysis:getCausesOfProblematicState(
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?,
         $problematicStates as element()*,
-        $checkPrecedingStates as xs:boolean
+        $checkPrecedingStates as xs:boolean,
+        $difference as xs:dayTimeDuration?
 ) as element()* {
     if (analysis:stateIsInitialOfSCXML($state) = true()) then
         <process level="{$level}"/>
     else if (analysis:stateIsInitial($state) = true()) then
-        analysis:getCausesOfProblematicState($mba, $level, $state/.., $inState, $excludeArchiveStates, $threshold, $problematicStates, $checkPrecedingStates)
+        analysis:getCausesOfProblematicState($mba, $level, $state/.., $inState, $excludeArchiveStates, $threshold, $problematicStates, $checkPrecedingStates, $difference)
     else
         (
-            analysis:getProblematicSubstates($mba, $level, $state, $inState, $excludeArchiveStates, $threshold, $problematicStates)
+            analysis:getProblematicSubstates($mba, $level, $state, $inState, $excludeArchiveStates, $threshold, $problematicStates, $difference)
             ,
-            analysis:getProblematicSyncs($mba, $level, $state, $excludeArchiveStates, $threshold)
+            analysis:getProblematicSyncs($mba, $level, $state, $excludeArchiveStates, $threshold, $difference)
             ,
             if ($checkPrecedingStates = true()) then
                 (: follow process until initial/problematicState :)
-                analysis:getCauseOfProblematicSync($mba, $level, $state, $excludeArchiveStates, $threshold)
+                analysis:getCauseOfProblematicSync($mba, $level, $state, $excludeArchiveStates, $threshold, $difference)
             else
                 ()
         )
@@ -324,7 +326,8 @@ declare function analysis:getProblematicSyncs(
         $level as xs:string,
         $state as element(),
         $excludeArchiveStates as xs:boolean?,
-        $threshold as xs:decimal?
+        $threshold as xs:decimal?,
+        $difference as xs:dayTimeDuration?
 ) as element()* {
     for $t in analysis:getTransitionsLeavingState(analysis:getSCXMLAtLevel($mba, $level), $state/@id)
     return
@@ -337,14 +340,15 @@ declare function analysis:getProblematicSyncs(
                     analysis:getProblematicSyncsMBAAtLevelIsInState($mba, $level, $state,
                             $excludeArchiveStates, $threshold, $syncFunction,
                             analysis:parseLevelTwoParams($t/@cond),
-                            analysis:parseStateTwoParams($t/@cond), ())
+                            analysis:parseStateTwoParams($t/@cond), (), $difference)
                 else if (($syncFunction = "$_isDescendantAtLevelInState") or
                         ($syncFunction = "$_isAncestorAtLevelInState")) then (: three params :)
                     analysis:getProblematicSyncsMBAAtLevelIsInState($mba, $level, $state,
                             $excludeArchiveStates, $threshold, $syncFunction,
                             analysis:parseLevelThreeParams($t/@cond),
                             analysis:parseStateThreeParams($t/@cond),
-                            analysis:parseObjectThreeParams($t/@cond))
+                            analysis:parseObjectThreeParams($t/@cond),
+                            $difference)
                 else
                     ()
         else
@@ -375,7 +379,8 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
         $syncFunction as xs:string,
         $syncLevel as xs:string,
         $syncStateId as xs:string,
-        $syncObj as xs:string?
+        $syncObj as xs:string?,
+        $difference as xs:dayTimeDuration?
 ) as element()* {
     let $mba := (: checks if the $mba contains a scxml element for $syncLevel. If not, it replaces $mba with its ancestor at $syncLevel. :)
         if (
@@ -391,8 +396,8 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
     let $syncState := analysis:getState($syncSCXML, $syncStateId)
 
     return
-        if (analysis:isSyncCausingProblem($mba, $level, $state, $syncFunction, $syncLevel, $syncStateId, $syncObj)) then
-            analysis:getCauseOfProblematicSync($mba, $syncLevel, $syncState, $excludeArchiveStates, $threshold)
+        if (analysis:isSyncCausingProblem($mba, $level, $state, $syncFunction, $syncLevel, $syncStateId, $syncObj, $difference)) then
+            analysis:getCauseOfProblematicSync($mba, $syncLevel, $syncState, $excludeArchiveStates, $threshold, $difference)
         else
             ()(: time is totally different, $state is not delayed by sync :)
 };
@@ -409,6 +414,7 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
  : @param $syncLevel level which is referenced in sync dependency
  : @param $syncStateId state which is ferenced in sync dependency
  : @param $syncObj object which is referenced in sync dependency
+ : @param $difference max duration between two correlating events
  : @return causes of problematic state
  :)
 declare function analysis:isSyncCausingProblem(
@@ -418,7 +424,8 @@ declare function analysis:isSyncCausingProblem(
         $syncFunction as xs:string,
         $syncLevel as xs:string,
         $syncStateId as xs:string,
-        $syncObj as xs:string?
+        $syncObj as xs:string?,
+        $difference as xs:dayTimeDuration?
 ) as xs:boolean {
     let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level)
     return (: for each descendant check if there is a problem with this sync :)
@@ -448,7 +455,7 @@ declare function analysis:isSyncCausingProblem(
                         for $untilTime in $untilProblemState
                         return
                             for $syncTime in $fromTimeSyncState
-                            return analysis:timesAreSame($untilTime, $syncTime)
+                            return analysis:timesAreSame($untilTime, $syncTime, $difference)
         )
 };
 
@@ -468,7 +475,8 @@ declare function analysis:getCauseOfProblematicSync(
         $level as xs:string,
         $state as element(), (: syncState :)
         $excludeArchiveStates as xs:boolean?,
-        $threshold as xs:decimal?
+        $threshold as xs:decimal?,
+        $difference as xs:dayTimeDuration?
 ) as element()* {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
     let $problematicStates := analysis:getProblematicStates($mba, $level, (), $excludeArchiveStates, $threshold)
@@ -480,7 +488,7 @@ declare function analysis:getCauseOfProblematicSync(
             return
                 <state id="{fn:string($prec/@id)}">
                     {
-                        analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $problematicStates, false())
+                        analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $problematicStates, false(), $difference)
                     }
                 </state>
         else
@@ -488,7 +496,7 @@ declare function analysis:getCauseOfProblematicSync(
             functx:distinct-deep(
                     for $prec in $precedingStates
                     return (: call of this function allows to check further synchronization dependencies :)
-                        analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $problematicStates, true())
+                        analysis:getCausesOfProblematicState($mba, $level, $prec, (), $excludeArchiveStates, $threshold, $problematicStates, true(), $difference)
             )
 };
 
@@ -617,7 +625,8 @@ declare function analysis:getProblematicSubstates(
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?,
-        $problematicStates as element()*
+        $problematicStates as element()*,
+        $difference as xs:dayTimeDuration?
 ) as element()* {
     let $substates := $state//(sc:state | sc:parallel | sc:final)
     return
@@ -626,7 +635,7 @@ declare function analysis:getProblematicSubstates(
             return
                 <state id="{fn:string($sub/@id)}">
                     {
-                        analysis:getCausesOfProblematicState($mba, $level, $sub, $inState, $excludeArchiveStates, $threshold, $problematicStates, false())
+                        analysis:getCausesOfProblematicState($mba, $level, $sub, $inState, $excludeArchiveStates, $threshold, $problematicStates, false(), $difference)
                     }
                 </state>
         else
@@ -679,20 +688,28 @@ declare function analysis:isParallel(
 };
 
 (:~ 
- : This function checks if a timestamp is within five minutes after a second
+ : This function checks if a timestamp is within a given difference after a second
  : timestamp.
  : @param $time1 first timestamp
  : @param $time2 second timestamp
+ : @param $difference max difference between timestamps
  : @return true if first timestamp is within 5 minutes after second timestamp
  :)
 declare function analysis:timesAreSame(
         $time1 as xs:dateTime,
-        $time2 as xs:dateTime
+        $time2 as xs:dateTime,
+        $difference as xs:dayTimeDuration?
 ) as xs:boolean {
-    if (($time2 <= $time1) and ($time1 - $time2 <= xs:dayTimeDuration("PT5M"))) then
-        true()
-    else
-        false()
+    let $difference :=
+        if (empty($difference)) then
+            $difference
+        else
+            xs:dayTimeDuration("PT5M")
+    return
+        if (($time2 <= $time1) and ($time1 - $time2 <= $difference)) then
+            true()
+        else
+            false()
 };
 
 (:~ 

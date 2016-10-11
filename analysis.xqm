@@ -254,7 +254,7 @@ declare function analysis:getCausesOfProblematicStates(
         $inState as xs:string?,
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as element()* {
     let $problematicStates := analysis:getProblematicStates($mba, $level, $inState, $excludeArchiveStates, $threshold)
 
@@ -292,7 +292,7 @@ declare function analysis:getCausesOfProblematicState(
         $threshold as xs:decimal?,
         $problematicStates as element()*,
         $checkPrecedingStates as xs:boolean,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as element()* {
     if (analysis:stateIsInitialOfSCXML($state) = true()) then
         <process level="{$level}"/>
@@ -330,7 +330,7 @@ declare function analysis:getProblematicSyncs(
         $state as element(),
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as element()* {
     for $t in analysis:getTransitionsLeavingState(analysis:getSCXMLAtLevel($mba, $level), $state/@id)
     return
@@ -384,7 +384,7 @@ declare function analysis:getProblematicSyncsMBAAtLevelIsInState(
         $syncLevel as xs:string,
         $syncStateId as xs:string,
         $syncObj as xs:string?,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as element()* {
     let $mba := (: checks if the $mba contains a scxml element for $syncLevel. If not, it replaces $mba with its ancestor at $syncLevel. :)
         if (
@@ -429,7 +429,7 @@ declare function analysis:isSyncCausingProblem(
         $syncLevel as xs:string,
         $syncStateId as xs:string,
         $syncObj as xs:string?,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as xs:boolean {
     let $descendants := analysis:getDescendantsAtLevelOrMBA($mba, $level)
     return (: for each descendant check if there is a problem with this sync :)
@@ -481,7 +481,7 @@ declare function analysis:getCauseOfProblematicSync(
         $state as element(), (: syncState :)
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as element()* {
     let $scxml := analysis:getSCXMLAtLevel($mba, $level)
     let $problematicStates := analysis:getProblematicStates($mba, $level, (), $excludeArchiveStates, $threshold)
@@ -632,7 +632,7 @@ declare function analysis:getProblematicSubstates(
         $excludeArchiveStates as xs:boolean?,
         $threshold as xs:decimal?,
         $problematicStates as element()*,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as element()* {
     let $substates := $state//(sc:state | sc:parallel | sc:final)
     return
@@ -704,18 +704,12 @@ declare function analysis:isParallel(
 declare function analysis:timesAreSame(
         $time1 as xs:dateTime,
         $time2 as xs:dateTime,
-        $difference as xs:dayTimeDuration?
+        $difference as xs:dayTimeDuration
 ) as xs:boolean {
-    let $difference :=
-        if (empty($difference)) then
-            $difference
-        else
-            xs:dayTimeDuration("PT5M")
-    return
-        if (($time2 <= $time1) and ($time1 - $time2 <= $difference)) then
-            true()
-        else
-            false()
+      if (($time2 <= $time1) and ($time1 - $time2 <= $difference)) then
+          true()
+      else
+          false()
 };
 
 (:~ 

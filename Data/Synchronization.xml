@@ -38,7 +38,7 @@
 									<xes:string key="sc:state" value="S2"/>
 									<xes:string key="concept:name" value="t2"/>
 									<xes:string key="sc:event" value="t2"/>
-									<xes:string key="sc:cond" value="$_someDescendantAtLevelIsInState('l2', 'SY')"/>
+									<xes:string key="sc:cond" value="$_everyDescendantAtLevelIsInState('l2', 'SY')"/>
 									<xes:string key="sc:target" value="S3"/>
 								</xes:event>
 								<xes:event>
@@ -59,7 +59,7 @@
 					<sc:transition event="t1" target="S2"/>
 				</sc:state>
 				<sc:state id="S2">
-					<sc:transition event="t2" cond="$_someDescendantAtLevelIsInState('l2', 'SY')" target="S3"/>
+					<sc:transition event="t2" cond="$_everyDescendantAtLevelIsInState('l2', 'SY')" target="S3"/>
 				</sc:state>
 				<sc:state id="S3">
 					<sc:transition event="t3" target="S4"/>

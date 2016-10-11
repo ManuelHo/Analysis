@@ -27,6 +27,8 @@ let $mbaSubstates := $testDataSub/mba:mba
 
 let $mbaIsInState := db:open('SynchronizationIsInState')/mba:mba
 
+let $difference := xs:dayTimeDuration("PT5M")
+
 let $changedStates :=
     <states>
         <state id="S1" factor='1'/>
@@ -46,14 +48,14 @@ let $cTransFactors :=
     )
 
 let $cycleTime := analysis:getTotalCycleTime($mba, $level, $inState, true(), (), (), ())
-let $problems := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.3)
+let $problems := analysis:getCausesOfProblematicStates($mba, $level, $inState, true(), 0.3, $difference)
 let $problemStates := analysis:getProblematicStates($mba, $level, (), true(), 0.3)
 
 let $stateLog := analysis:getStateLog($mba)
 let $time1 := $stateLog/state[@ref='S2']/@until
 let $time2 := $stateLog/state[@ref='S3']/@until
 
-let $same := analysis:timesAreSame(xs:dateTime($time1), xs:dateTime($time2))
+let $same := analysis:timesAreSame(xs:dateTime($time1), xs:dateTime($time2), $difference)
 let $times := (xs:dateTime($time2), xs:dateTime($time1))
 let $t := $mbaSubstates/mba:topLevel/mba:elements//sc:state[@id="S2.2"]//sc:transition
 

@@ -9,6 +9,7 @@ import module namespace analysis = 'http://www.dke.jku.at/MBA/Analysis';
 let $mba := db:open("TestData")/mba:mba
 let $mbaQualitative := db:open("Synchronization")/mba:mba
 
+let $difference := xs:dayTimeDuration("PT5M")
 let $excludeArchiveStates := true()
 let $changedStates :=
     <states>
@@ -38,5 +39,5 @@ return
                 'l1', 'S4', $excludeArchiveStates, 0.3),
         "--",
         analysis:getCausesOfProblematicStates($mbaQualitative,
-                'l1', 'S4', $excludeArchiveStates, 0.3)
+                'l1', 'S4', $excludeArchiveStates, 0.3, $difference)
     )
